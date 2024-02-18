@@ -1,10 +1,10 @@
 {
   "name": "em.tayyare.tech",
   "version": "0.1b",
-  "description": "",
-  "author": "Tayyare Tech",
+  "description": "Electronic Management of TAYYARE",
+  "author": "Tayyare Technologies",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
