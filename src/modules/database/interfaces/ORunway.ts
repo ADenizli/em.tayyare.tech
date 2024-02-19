@@ -1,4 +1,4 @@
-export default interface IORunways {
+export default interface IORunway {
   id: number;
   airport_ref: number;
   airport_ident: string;

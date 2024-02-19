@@ -2,13 +2,13 @@ import { Injectable } from '@nestjs/common';
 import IAirport from './interfaces/Airport';
 import { FileSystemService } from '@modules/file-system/file-system.service';
 import * as path from 'path';
-import IORunwaysRaw from './interfaces/ORunways';
-import IORunways from './interfaces/ORunways';
+import IORunway from './interfaces/ORunway';
+import IOAirport from './interfaces/OAirport';
 
 @Injectable()
 export class DatabaseService {
   private airportsData: IAirport[] = undefined;
-  private oRunways: IORunways[];
+  private oRunways: IORunway[];
 
   constructor(private readonly fileSystemService: FileSystemService) {
     // # on development process, we will get values from navdata folder which is under database module #
@@ -31,8 +31,12 @@ export class DatabaseService {
     });
   }
 
+  async setOA() {
+    let OA_Clustered: IOAirport[];
+  }
+
   async setOR() {
-    let OR_Clustered: IORunways[];
+    let OR_Clustered: IORunway[];
     const orRaw = (
       await this.fileSystemService.readFile(
         'modules/database/navdata/runways.csv',
@@ -66,7 +70,35 @@ export class DatabaseService {
     return OR_Clustered;
   }
 
-  async getOAData(icao: string) {}
+  async setOA() {
+    let OA_Clustered: IOAirport[];
+    const oaRaw = (
+      await this.fileSystemService.readFile(
+        'modules/database/navdata/aiports.csv',
+      )
+    ).split('\n');
+    oaRaw.forEach((oairport) => {
+      const commaSeperatedAirport = oairport.split(',');
+      OA_Clustered.push({
+        id: number;
+  ident: string;
+  type: string;
+  name: string;
+  latitude_deg: number;
+  longitude_deg: number;
+  elevation_ft: number;
+  continent: string;
+  iso_country: string;
+  iso_region: string;
+  municipality: string;
+  scheduled_service: string;
+  gps_code: string;
+  iata_code: string;
+  local_code: string;
+      });
+    });
+    return OR_Clustered;
+  }
 
   getRunwaysFromORData(icao: string) {
     return this.oRunways.filter((oRunway) => oRunway.airport_ident === icao);
