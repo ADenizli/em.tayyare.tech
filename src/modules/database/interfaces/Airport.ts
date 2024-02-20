@@ -3,6 +3,7 @@ import IPosition from '@modules/common/interfaces/Position';
 export default interface IAirport {
   icao: string;
   iata: string;
+  name: string;
   position: IPosition;
   iso_country: ICountry;
   iso_region: IRegion;
