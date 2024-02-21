@@ -7,10 +7,12 @@ import IOAirport from './interfaces/OAirport';
 import IOCountry from './interfaces/OCountry';
 import IORegion from './interfaces/ORegion';
 import parseCoordinate from '@modules/common/helpers/ParseCoordinate';
+import IFix from './interfaces/Fix';
 
 @Injectable()
 export class DatabaseService {
   private airports: IAirport[] = [];
+  private fixes: IFix[] = [];
   private errorsOnAirports: string[] = [];
   private oRunways: IORunway[];
   private oAirports: IOAirport[];
@@ -35,6 +37,7 @@ export class DatabaseService {
     this.oRunways = await this.setORunways();
     this.oAirports = await this.setOAirports();
     this.setAirportData();
+    this.setFixes();
   }
   async setAirportData(): Promise<any | IAirport[]> {
     const airportRegs = await this.fileSystemService.getFilesInFolder(
@@ -235,6 +238,52 @@ export class DatabaseService {
 
   getCountryOCData(iso: string): IOCountry {
     return this.oCountries.find((oCountry) => oCountry.iso === iso);
+  }
+
+  async setFixes() {
+    const fixesRaw = (
+      await this.fileSystemService.readFile(
+        'modules/database/navdata/fixes.txt',
+      )
+    ).split('\n');
+
+    fixesRaw.forEach((line) => {
+      if (!line.startsWith(';')) {
+        const blankArray = line.split(' ');
+        if (blankArray.length > 1) {
+          let fix: IFix;
+          if (blankArray[0].length === 4) {
+            console.log(blankArray);
+
+            fix = {
+              ident: blankArray[0],
+              position: {
+                latitude: Number(blankArray[28]),
+                longitude: Number(blankArray[29]),
+              },
+            };
+          } else if (blankArray[0].length === 3) {
+            fix = {
+              ident: blankArray[0],
+              position: {
+                latitude: Number(blankArray[30]),
+                longitude: Number(blankArray[32]),
+              },
+            };
+          } else {
+            fix = {
+              ident: blankArray[19],
+              position: {
+                latitude: Number(blankArray[26]),
+                longitude: Number(blankArray[27]),
+              },
+            };
+          }
+          this.fixes.push(fix);
+        }
+      }
+    });
+    console.log(this.fixes);
   }
 
   serviceCheck(): string {
