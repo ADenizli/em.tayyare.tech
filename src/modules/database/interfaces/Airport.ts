@@ -19,8 +19,9 @@ export interface IGate {
 export interface IRunway {
   ident: string;
   position: IPosition;
-  instrument_frequency?: number;
-  course: number;
+  instrument_frequency?: string;
+  math_heading: number;
+  course: string;
   is_closed: boolean;
 }
 

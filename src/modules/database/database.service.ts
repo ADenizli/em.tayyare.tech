@@ -8,12 +8,14 @@ import IOCountry from './interfaces/OCountry';
 import IORegion from './interfaces/ORegion';
 import parseCoordinate from '@modules/common/helpers/ParseCoordinate';
 import IFix from './interfaces/Fix';
+import IJRunway from './interfaces/JRunway';
 
 @Injectable()
 export class DatabaseService {
   private airports: IAirport[] = [];
   private fixes: IFix[] = [];
   private errorsOnAirports: string[] = [];
+  private jRunways: IJRunway[];
   private oRunways: IORunway[];
   private oAirports: IOAirport[];
   private oCountries: IOCountry[];
@@ -36,6 +38,7 @@ export class DatabaseService {
     this.oCountries = await this.setOCountries();
     this.oRunways = await this.setORunways();
     this.oAirports = await this.setOAirports();
+    this.jRunways = await this.setJRunways();
     this.setAirportData();
     this.setFixes();
   }
@@ -58,7 +61,6 @@ export class DatabaseService {
       if (oAirport && oRunwaysByAirport && countryData && regionData) {
         const gates: IGate[] = [];
         const runways: IRunway[] = [];
-
         rawJD.forEach((line) => {
           if (line.startsWith('GATE') && !line.startsWith('GATES')) {
             const parts = line.split(' ');
@@ -68,13 +70,15 @@ export class DatabaseService {
             gates.push({ ident, position: { latitude, longitude } });
           } else if (line.startsWith('RNW') && !line.startsWith('RNWS')) {
             const parts = line.split(' ');
-            const ident = parts[1];
+            const ident = parts[1].trim();
             const oRunway = oRunwaysByAirport.find(
               (runway) =>
-                runway.le_ident === ident || runway.he_ident === ident,
+                runway.le_ident.trim() === ident ||
+                runway.he_ident.trim() === ident,
             );
             if (oRunway) {
-              const hl = oRunway.le_ident === ident ? 'le' : 'he';
+              const JRunway = this.getJRunwayData(oAirport.ident, ident);
+              const hl = oRunway.le_ident.trim() === ident ? 'le' : 'he';
               runways.push({
                 ident,
                 position: {
@@ -82,8 +86,16 @@ export class DatabaseService {
                   longitude: oRunway[`${hl}_longitude_deg`],
                   elevation: oRunway[`${hl}_elevation_feet`],
                 },
-                course: oRunway[`${hl}_heading_degT`],
-                is_closed: oRunway.closed,
+                instrument_frequency: JRunway
+                  ? JRunway.frequency !== '000.00'
+                    ? JRunway.frequency
+                    : undefined
+                  : undefined,
+                math_heading: oRunway[`${hl}_heading_degT`],
+                course: JRunway
+                  ? JRunway.course
+                  : oRunway[`${hl}_heading_degT`].toString(),
+                is_closed: false,
               });
             }
           }
@@ -150,6 +162,34 @@ export class DatabaseService {
       }
     });
     return OR_Clustered;
+  }
+
+  async setJRunways() {
+    const J_Clustered: IJRunway[] = [];
+    const jRaw = (
+      await this.fileSystemService.readFile(
+        'modules/database/navdata/runways.txt',
+      )
+    ).split('\n');
+    jRaw.forEach((line) => {
+      if (!line.startsWith(';')) {
+        const airport = line.substring(24, 28).trim();
+        const ident = line.substring(28, 31).trim();
+        const latitude = Number(line.substring(39, 49).trim());
+        const longitude = Number(line.substring(49, 60).trim());
+        const frequency = line.substring(60, 66).trim();
+        const course = line.substring(66, 69).trim();
+
+        J_Clustered.push({
+          airport,
+          ident,
+          frequency,
+          position: { latitude, longitude },
+          course,
+        });
+      }
+    });
+    return J_Clustered;
   }
 
   async setOAirports() {
@@ -240,6 +280,16 @@ export class DatabaseService {
     return this.oCountries.find((oCountry) => oCountry.iso === iso);
   }
 
+  getAirportData(icao: string): IAirport {
+    return this.airports.find((airport) => airport.icao === icao);
+  }
+
+  getJRunwayData(icao: string, ident: string): IJRunway {
+    return this.jRunways.find(
+      (runway) => runway.airport === icao && runway.ident === ident,
+    );
+  }
+
   async setFixes() {
     const fixesRaw = (
       await this.fileSystemService.readFile(
@@ -263,6 +313,10 @@ export class DatabaseService {
         this.fixes.push({ ident, position: { latitude, longitude } });
       }
     });
+  }
+
+  getFixesByIdent(ident: string): IFix {
+    return this.fixes.find((fix) => fix.ident === ident);
   }
 
   serviceCheck(): string {
