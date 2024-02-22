@@ -249,41 +249,20 @@ export class DatabaseService {
 
     fixesRaw.forEach((line) => {
       if (!line.startsWith(';')) {
-        const blankArray = line.split(' ');
-        if (blankArray.length > 1) {
-          let fix: IFix;
-          if (blankArray[0].length === 4) {
-            console.log(blankArray);
-
-            fix = {
-              ident: blankArray[0],
-              position: {
-                latitude: Number(blankArray[28]),
-                longitude: Number(blankArray[29]),
-              },
-            };
-          } else if (blankArray[0].length === 3) {
-            fix = {
-              ident: blankArray[0],
-              position: {
-                latitude: Number(blankArray[30]),
-                longitude: Number(blankArray[32]),
-              },
-            };
-          } else {
-            fix = {
-              ident: blankArray[19],
-              position: {
-                latitude: Number(blankArray[26]),
-                longitude: Number(blankArray[27]),
-              },
-            };
-          }
-          this.fixes.push(fix);
+        const lineCharacters = line.split('');
+        let ident;
+        if (lineCharacters[3] === ' ') {
+          ident = line.substring(0, 3);
+        } else if (lineCharacters[4] === ' ') {
+          ident = line.substring(0, 4);
+        } else {
+          ident = line.substring(0, 5);
         }
+        const latitude = Number(line.substring(29, 39).trim());
+        const longitude = Number(line.substring(40, 50).trim());
+        this.fixes.push({ ident, position: { latitude, longitude } });
       }
     });
-    console.log(this.fixes);
   }
 
   serviceCheck(): string {
