@@ -9,12 +9,16 @@ import IORegion from './interfaces/ORegion';
 import parseCoordinate from '@modules/common/helpers/ParseCoordinate';
 import IFix from './interfaces/Fix';
 import IJRunway from './interfaces/JRunway';
+import INavaid from './interfaces/Navaid';
+import NavaidTypes from './enums/NavaidTypes';
+import FrequencyTypes from './enums/FrequencyTypes';
 
 @Injectable()
 export class DatabaseService {
   private airports: IAirport[] = [];
   private fixes: IFix[] = [];
   private errorsOnAirports: string[] = [];
+  private navaids: INavaid[] = [];
   private jRunways: IJRunway[];
   private oRunways: IORunway[];
   private oAirports: IOAirport[];
@@ -39,6 +43,7 @@ export class DatabaseService {
     this.oRunways = await this.setORunways();
     this.oAirports = await this.setOAirports();
     this.jRunways = await this.setJRunways();
+    this.setNavAidData();
     this.setAirportData();
     this.setFixes();
   }
@@ -317,6 +322,28 @@ export class DatabaseService {
 
   getFixesByIdent(ident: string): IFix {
     return this.fixes.find((fix) => fix.ident === ident);
+  }
+
+  async setNavAidData() {
+    const navaidsRaw = (
+      await this.fileSystemService.readFile(
+        'modules/database/navdata/navaids.txt',
+      )
+    ).split('\n');
+
+    navaidsRaw.forEach((navaid) => {
+      this.navaids.push({
+        ident: navaid.substr(0, 24).trim(),
+        secondIdent: navaid.substr(24, 5).trim(),
+        type: navaid.substr(29, 5).trim() as NavaidTypes,
+        position: {
+          latitude: parseFloat(navaid.substr(34, 10).trim()),
+          longitude: parseFloat(navaid.substr(44, 11).trim()),
+        },
+        frequency: navaid.substr(55, 7).trim(),
+        frequencyType: navaid.substr(62, 1).trim() as FrequencyTypes,
+      });
+    });
   }
 
   serviceCheck(): string {
