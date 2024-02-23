@@ -16,8 +16,8 @@ import FrequencyTypes from './enums/FrequencyTypes';
 @Injectable()
 export class DatabaseService {
   private airports: IAirport[] = [];
-  private fixes: IFix[] = [];
   private errorsOnAirports: string[] = [];
+  private fixes: IFix[] = [];
   private navaids: INavaid[] = [];
   private jRunways: IJRunway[];
   private oRunways: IORunway[];
