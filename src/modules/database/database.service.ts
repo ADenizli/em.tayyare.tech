@@ -350,7 +350,7 @@ export class DatabaseService {
           type: navaid.substr(29, 5).trim() as NavaidTypes,
           position: {
             latitude: parseFloat(navaid.substr(34, 10).trim()),
-            longitude: parseFloat(navaid.substr(44, 11).trim()),
+            longitude: parseFloat(navaid.substr(44, 10).trim()),
           },
           frequency: navaid.substr(54, 6).trim(),
           frequencyType: navaid.substr(60, 1).trim() as FrequencyTypes,
@@ -387,7 +387,6 @@ export class DatabaseService {
         const isValidNavaid = this.getNavaidByIdent(blankSeperated[2]);
 
         let point;
-
         if (isValidNavaid && Array.isArray(isValidNavaid)) {
           point = isValidNavaid.find(
             (navaid) =>
@@ -396,6 +395,9 @@ export class DatabaseService {
               navaid.position.latitude === Number(blankSeperated[3]) &&
               navaid.position.longitude === Number(blankSeperated[4]),
           );
+          if (blankSeperated[2] === 'BUK') {
+            console.log(isValidNavaid, blankSeperated);
+          }
         } else if (isValidNavaid) {
           point = isValidNavaid;
         } else if (isValidFix && Array.isArray(isValidFix)) {
