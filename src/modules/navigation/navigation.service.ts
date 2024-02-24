@@ -1,70 +1,43 @@
-// import { Injectable } from '@nestjs/common';
-// import { DatabaseService } from '@modules/database/database.service';
-// import DefineRoughRouteDTO from './dto/define-rough-route.dto';
-// import EWayType from './enums/way-type.enum';
+import { Injectable } from '@nestjs/common';
+import { DatabaseService } from '@modules/database/database.service';
 
-// @Injectable()
-// export class NavigationService {
-//   constructor(private readonly databaseService: DatabaseService) {}
+@Injectable()
+export class NavigationService {
+  constructor(private readonly databaseService: DatabaseService) {}
 
-//   serviceCheck(): string {
-//     return '############################\n NAV MODULE LOADED SUCCESSFULLY \n############################';
-//   }
+  serviceCheck(): string {
+    return '############################\n NAV MODULE LOADED SUCCESSFULLY \n############################';
+  }
 
-//   //   OCC ACTIONS & CRUD
+  // Main Flight Functions
+  flightConfigration() {}
 
-//   // GCO ACTIONS
-//   async DefineRoughRoute(DefineRoughRouteDto: DefineRoughRouteDTO) {
-//     // Get Airport Informations
-//     const departureAirport =
-//       await this.databaseService.GetAirportInformationsByICAO(
-//         DefineRoughRouteDto.departure_airport,
-//       );
-//     const arrvivalAirport =
-//       await this.databaseService.GetAirportInformationsByICAO(
-//         DefineRoughRouteDto.arrvival_airport,
-//       );
+  departureConfigration() {}
 
-//     // Create Route Schema
-//     const ways = DefineRoughRouteDto.route;
+  enRouteConfigration() {}
 
-//     const RoughRoute = [
-//       {
-//         type: 'ORIGIN',
-//         val: departureAirport,
-//       },
-//       ways.map((way, index) => {
-//         if (index === 0) {
-//           return {
-//             type: 'INITIAL_WAYPOINT',
-//             val: way,
-//           };
-//         } else if (way.type === EWayType.AIRWAY) {
-//           // Get Airway
-//           let airway = await this.databaseService.GetAirwayByTitle(way.title);
+  approachConfigration() {}
 
-//           const nextIntersection = this.databaseService.GetPointData(
-//             ways[index + 1],
-//           );
-//           const prevIntersection = this.databaseService.GetPointData(
-//             ways[index - 1],
-//           );
+  compleateFlight() {}
 
-//           const startIndex = airway.findIndex(
-//             (point) => point.title === prevIntersection.title,
-//           );
-//           const endIndex = airway.findIndex(
-//             (point) => point.title === nextIntersection.title,
-//           );
+  // Additional Flight Functions
+  planHold() {}
 
-//           const neededAirway = airway.slice(startIndex, endIndex - 1);
+  immediateHold() {}
 
-//           return neededAirway.map((point) => point);
-//         }
-//       }),
-//       {},
-//     ];
-//   }
+  planOrbit() {}
 
-//   // ACO ACTIONS
-// }
+  immediateOrbit() {}
+
+  createWaypoint() {}
+
+  deleteWaypoint() {}
+
+  setRestrictions() {}
+
+  direct() {}
+
+  directIntercept() {}
+
+  offset() {}
+}
