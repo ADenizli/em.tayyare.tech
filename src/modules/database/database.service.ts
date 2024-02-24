@@ -12,6 +12,7 @@ import IJRunway from './interfaces/JRunway';
 import INavaid from './interfaces/Navaid';
 import NavaidTypes from './enums/NavaidTypes';
 import FrequencyTypes from './enums/FrequencyTypes';
+import IAirway from './interfaces/Airway';
 
 @Injectable()
 export class DatabaseService {
@@ -19,6 +20,7 @@ export class DatabaseService {
   private errorsOnAirports: string[] = [];
   private fixes: IFix[] = [];
   private navaids: INavaid[] = [];
+  private airways: IAirway[] = [];
   private jRunways: IJRunway[];
   private oRunways: IORunway[];
   private oAirports: IOAirport[];
@@ -46,6 +48,7 @@ export class DatabaseService {
     this.setNavAidData();
     this.setAirportData();
     this.setFixes();
+    this.setAirwayData();
   }
   async setAirportData(): Promise<any | IAirport[]> {
     const airportRegs = await this.fileSystemService.getFilesInFolder(
@@ -320,8 +323,16 @@ export class DatabaseService {
     });
   }
 
-  getFixesByIdent(ident: string): IFix {
-    return this.fixes.find((fix) => fix.ident === ident);
+  getFixesByIdent(ident: string): IFix | IFix[] {
+    const val = this.fixes.filter((fix) => fix.ident === ident);
+    switch (val.length) {
+      case 0:
+        return undefined;
+      case 1:
+        return val[0];
+      case 2:
+        return val;
+    }
   }
 
   async setNavAidData() {
@@ -332,18 +343,89 @@ export class DatabaseService {
     ).split('\n');
 
     navaidsRaw.forEach((navaid) => {
-      this.navaids.push({
-        ident: navaid.substr(0, 24).trim(),
-        secondIdent: navaid.substr(24, 5).trim(),
-        type: navaid.substr(29, 5).trim() as NavaidTypes,
-        position: {
-          latitude: parseFloat(navaid.substr(34, 10).trim()),
-          longitude: parseFloat(navaid.substr(44, 11).trim()),
-        },
-        frequency: navaid.substr(55, 7).trim(),
-        frequencyType: navaid.substr(62, 1).trim() as FrequencyTypes,
-      });
+      if (!navaid.startsWith(';')) {
+        this.navaids.push({
+          ident: navaid.substr(0, 24).trim(),
+          secondIdent: navaid.substr(24, 5).trim(),
+          type: navaid.substr(29, 5).trim() as NavaidTypes,
+          position: {
+            latitude: parseFloat(navaid.substr(34, 10).trim()),
+            longitude: parseFloat(navaid.substr(44, 11).trim()),
+          },
+          frequency: navaid.substr(54, 6).trim(),
+          frequencyType: navaid.substr(60, 1).trim() as FrequencyTypes,
+        });
+      }
     });
+  }
+
+  getNavaidByIdent(ident: string): INavaid | INavaid[] {
+    const val = this.navaids.filter((navaid) => navaid.secondIdent === ident);
+
+    switch (val.length) {
+      case 0:
+        return undefined;
+      case 1:
+        return val[0];
+      default:
+        return val;
+    }
+  }
+
+  async setAirwayData() {
+    const airwayRaw = (
+      await this.fileSystemService.readFile(
+        'modules/database/navdata/airways.txt',
+      )
+    ).split('\n');
+    airwayRaw.forEach((airway) => {
+      if (!airway.startsWith(';')) {
+        const blankSeperated = airway.split(' ');
+        const ident = blankSeperated[0];
+        const isValidFix = this.getFixesByIdent(blankSeperated[2]);
+
+        const isValidNavaid = this.getNavaidByIdent(blankSeperated[2]);
+
+        let point;
+
+        if (isValidNavaid && Array.isArray(isValidNavaid)) {
+          point = isValidNavaid.find(
+            (navaid) =>
+              navaid.type !== NavaidTypes.ILS &&
+              navaid.type !== NavaidTypes.ILSD &&
+              navaid.position.latitude === Number(blankSeperated[3]) &&
+              navaid.position.longitude === Number(blankSeperated[4]),
+          );
+        } else if (isValidNavaid) {
+          point = isValidNavaid;
+        } else if (isValidFix && Array.isArray(isValidFix)) {
+          point = isValidFix.find(
+            (fix) =>
+              fix.position.latitude === Number(blankSeperated[3]) &&
+              fix.position.longitude === Number(blankSeperated[4]),
+          );
+        } else if (isValidFix) {
+          point = isValidFix;
+        } else {
+          point = {
+            ident: blankSeperated[2],
+            position: {
+              latitude: blankSeperated[3],
+              longitude: blankSeperated[4],
+            },
+          };
+        }
+        const validAirway = this.airways.find(
+          (airway) => airway.ident === ident,
+        );
+        if (validAirway) {
+          validAirway.intersections.push(point);
+        } else {
+          this.airways.push({ ident, intersections: [point] });
+        }
+      }
+    });
+    console.log(this.airways.find((airway) => airway.ident === 'UW71'));
   }
 
   serviceCheck(): string {
