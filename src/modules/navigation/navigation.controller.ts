@@ -13,6 +13,16 @@ export class NavigationController {
     return this.navigationService.serviceCheck();
   }
 
+  @Get('create-flight-legs-test')
+  createFlightLegsTest(): void {
+    return this.navigationService.createFlightLegs();
+  }
+
+  @Get('get-flight')
+  getFlight(): void {
+    this.getFlight();
+  }
+
   @Patch('init-position')
   InitPosition(@Body() dto: InitPositionDTO): FMS_Response {
     this.navigationService.initPosition(dto);

@@ -11,4 +11,5 @@ export default interface ILeg {
     maxSpd?: number;
     minSpd?: number;
   };
+  togo?: number;
 }

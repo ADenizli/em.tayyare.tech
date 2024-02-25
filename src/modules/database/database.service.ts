@@ -335,6 +335,10 @@ export class DatabaseService {
     }
   }
 
+  getAirwayByIdent(ident: string): IAirway {
+    return this.airways.find((airway) => airway.ident === ident);
+  }
+
   async setNavAidData() {
     const navaidsRaw = (
       await this.fileSystemService.readFile(
@@ -383,7 +387,6 @@ export class DatabaseService {
         const blankSeperated = airway.split(' ');
         const ident = blankSeperated[0];
         const isValidFix = this.getFixesByIdent(blankSeperated[2]);
-
         const isValidNavaid = this.getNavaidByIdent(blankSeperated[2]);
 
         let point;
@@ -424,6 +427,7 @@ export class DatabaseService {
         }
       }
     });
+    console.log(this.airways);
   }
 
   serviceCheck(): string {
