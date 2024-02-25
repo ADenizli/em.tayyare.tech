@@ -395,9 +395,6 @@ export class DatabaseService {
               navaid.position.latitude === Number(blankSeperated[3]) &&
               navaid.position.longitude === Number(blankSeperated[4]),
           );
-          if (blankSeperated[2] === 'BUK') {
-            console.log(isValidNavaid, blankSeperated);
-          }
         } else if (isValidNavaid) {
           point = isValidNavaid;
         } else if (isValidFix && Array.isArray(isValidFix)) {
@@ -427,7 +424,6 @@ export class DatabaseService {
         }
       }
     });
-    console.log(this.airways.find((airway) => airway.ident === 'UW71'));
   }
 
   serviceCheck(): string {
