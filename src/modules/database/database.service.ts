@@ -52,7 +52,7 @@ export class DatabaseService {
   }
   async setAirportData(): Promise<any | IAirport[]> {
     const airportRegs = await this.fileSystemService.getFilesInFolder(
-      'modules/database/navdata/airports',
+      'modules/database/navdata_test/airports',
     );
 
     airportRegs.forEach(async (airportReg) => {
@@ -139,7 +139,7 @@ export class DatabaseService {
     const OR_Clustered: IORunway[] = [];
     const orRaw = (
       await this.fileSystemService.readFile(
-        'modules/database/navdata/runways.csv',
+        'modules/database/navdata_test/runways.csv',
       )
     ).split('\n');
     orRaw.forEach((runway, index) => {
@@ -176,7 +176,7 @@ export class DatabaseService {
     const J_Clustered: IJRunway[] = [];
     const jRaw = (
       await this.fileSystemService.readFile(
-        'modules/database/navdata/runways.txt',
+        'modules/database/navdata_test/runways.txt',
       )
     ).split('\n');
     jRaw.forEach((line) => {
@@ -204,7 +204,7 @@ export class DatabaseService {
     const OA_Clustered: IOAirport[] = [];
     const oaRaw = (
       await this.fileSystemService.readFile(
-        'modules/database/navdata/airports.csv',
+        'modules/database/navdata_test/airports.csv',
       )
     ).split('\n');
     oaRaw.forEach((oairport, index) => {
@@ -236,7 +236,7 @@ export class DatabaseService {
     const OC_Clustered: IOCountry[] = [];
     const ocRaw = (
       await this.fileSystemService.readFile(
-        'modules/database/navdata/countries.csv',
+        'modules/database/navdata_test/countries.csv',
       )
     ).split('\n');
     ocRaw.forEach((country, index) => {
@@ -256,7 +256,7 @@ export class DatabaseService {
     const OR_Clustered: IORegion[] = [];
     const orRaw = (
       await this.fileSystemService.readFile(
-        'modules/database/navdata/regions.csv',
+        'modules/database/navdata_test/regions.csv',
       )
     ).split('\n');
     orRaw.forEach((region, index) => {
@@ -301,7 +301,7 @@ export class DatabaseService {
   async setFixes() {
     const fixesRaw = (
       await this.fileSystemService.readFile(
-        'modules/database/navdata/fixes.txt',
+        'modules/database/navdata_test/fixes.txt',
       )
     ).split('\n');
 
@@ -342,15 +342,15 @@ export class DatabaseService {
   async setNavAidData() {
     const navaidsRaw = (
       await this.fileSystemService.readFile(
-        'modules/database/navdata/navaids.txt',
+        'modules/database/navdata_test/navaids.txt',
       )
     ).split('\n');
 
     navaidsRaw.forEach((navaid) => {
       if (!navaid.startsWith(';')) {
         this.navaids.push({
-          ident: navaid.substr(0, 24).trim(),
-          secondIdent: navaid.substr(24, 5).trim(),
+          ident: navaid.substr(24, 5).trim(),
+          secondIdent: navaid.substr(0, 24).trim(),
           type: navaid.substr(29, 5).trim() as NavaidTypes,
           position: {
             latitude: parseFloat(navaid.substr(34, 10).trim()),
@@ -379,7 +379,7 @@ export class DatabaseService {
   async setAirwayData() {
     const airwayRaw = (
       await this.fileSystemService.readFile(
-        'modules/database/navdata/airways.txt',
+        'modules/database/navdata_test/airways.txt',
       )
     ).split('\n');
     airwayRaw.forEach((airway) => {
@@ -427,7 +427,6 @@ export class DatabaseService {
         }
       }
     });
-    console.log(this.airways);
   }
 
   serviceCheck(): string {

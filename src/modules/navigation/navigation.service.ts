@@ -10,6 +10,7 @@ import EDepartureConfigrations from './enums/DepartureConfigrations';
 import EnrouteConfigrationTypes from './enums/EnrouteConfigrationTypes';
 import IPosition from '@modules/common/interfaces/Position';
 import NavaidTypes from '@modules/database/enums/NavaidTypes';
+import { HttpService } from '@nestjs/axios';
 
 @Injectable()
 export class NavigationService {
@@ -39,7 +40,10 @@ export class NavigationService {
     ],
   };
 
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly httpService: HttpService,
+  ) {}
 
   serviceCheck(): string {
     return '############################\n NAV MODULE LOADED SUCCESSFULLY \n############################';
@@ -66,7 +70,7 @@ export class NavigationService {
 
   approachConfigration() {}
 
-  createFlightLegs() {
+  async createFlightLegs() {
     const legs: ILeg[] = [];
     if (this.flight.origin && this.flight.position) {
       if (this.flight.departureConfigration) {
@@ -134,10 +138,10 @@ export class NavigationService {
               }
               if (index !== 0) {
                 console.log(this.flight.legs);
-                this.flight.legs[-1].togo = this.getDistance(
-                  this.flight.legs[-1].position,
-                  point,
-                );
+                // this.flight.legs[-1].togo = this.getDistance(
+                //   this.flight.legs[-1].position,
+                //   point,
+                // );
               }
               if (this.flight.legs) {
                 this.flight.legs.push({
@@ -164,21 +168,33 @@ export class NavigationService {
               const airwayIntersections = this.databaseService.getAirwayByIdent(
                 enrouteItem.ident.trim(),
               )?.intersections;
+              console.log(airwayIntersections);
 
               if (airwayIntersections) {
-                const requiredIntersections = airwayIntersections.slice(
+                let requiredIntersections;
+                const index1 = airwayIntersections
+                  .map((intersection) => intersection.ident)
+                  .indexOf(initialIntersection.ident);
+                const index2 =
                   airwayIntersections
                     .map((intersection) => intersection.ident)
-                    .indexOf(initialIntersection.ident),
-                  airwayIntersections
-                    .map((intersection) => intersection.ident)
-                    .indexOf(exitingIntersection.ident) + 1,
-                );
-                requiredIntersections.forEach((intersection) => {
-                  this.flight.legs[-1].togo = this.getDistance(
-                    this.flight.legs[-1].position,
-                    intersection.position,
+                    .indexOf(exitingIntersection.ident) + 1;
+                if (index1 > index2) {
+                  requiredIntersections = airwayIntersections
+                    .slice(index2, index1)
+                    .reverse();
+                } else {
+                  requiredIntersections = airwayIntersections.slice(
+                    index1,
+                    index2,
                   );
+                }
+                console.log('############### \n', requiredIntersections);
+                requiredIntersections.forEach((intersection) => {
+                  // this.flight.legs[-1].togo = this.getDistance(
+                  //   this.flight.legs[-1].position,
+                  //   intersection.position,
+                  // );
                   this.flight.legs.push({
                     type: ELegType.INTERSECTION,
                     ident: intersection.ident,
@@ -186,7 +202,7 @@ export class NavigationService {
                   });
                 });
               } else {
-                console.log(this.databaseService.getAirwayByIdent('UW71'));
+                console.log('error occurred');
               }
             }
           });
@@ -196,6 +212,18 @@ export class NavigationService {
       }
     } else {
       // return origin and position error
+    }
+    for (let index = 0; index < this.flight.legs.length - 1; index++) {
+      this.flight.legs[index].togo = this.getDistance(
+        this.flight.legs[index].position,
+        this.flight.legs[index + 1].position,
+      );
+
+      this.flight.legs[index].course =
+        await this.calculateBearingWithDeclination(
+          this.flight.legs[index].position,
+          this.flight.legs[index + 1].position,
+        );
     }
     console.log(this.flight.legs);
   }
@@ -250,5 +278,47 @@ export class NavigationService {
 
   toRadians(degrees: number): number {
     return (degrees * Math.PI) / 180;
+  }
+
+  toDegrees(radians: number): number {
+    return (radians * 180) / Math.PI;
+  }
+
+  calculateBearing(coord1: IPosition, coord2: IPosition): number {
+    const startLatRad = this.toRadians(coord1.latitude);
+    const startLngRad = this.toRadians(coord1.longitude);
+    const destLatRad = this.toRadians(coord2.latitude);
+    const destLngRad = this.toRadians(coord2.longitude);
+
+    const y = Math.sin(destLngRad - startLngRad) * Math.cos(destLatRad);
+    const x =
+      Math.cos(startLatRad) * Math.sin(destLatRad) -
+      Math.sin(startLatRad) *
+        Math.cos(destLatRad) *
+        Math.cos(destLngRad - startLngRad);
+    const bearing = this.toDegrees(Math.atan2(y, x));
+
+    return (bearing + 360) % 360; // Normalize to 0-360
+  }
+
+  async getMagneticDeclination(coords: IPosition): Promise<number> {
+    const url = `https://www.ngdc.noaa.gov/geomag-web/calculators/calculateDeclination?lat1=${coords.latitude}&lon1=${coords.longitude}&resultFormat=json`;
+    try {
+      const response = await this.httpService.get(url).toPromise();
+      return response.data.result[0].declination;
+    } catch (error) {
+      console.error('Error fetching magnetic declination:', error);
+      return 0;
+    }
+  }
+
+  async calculateBearingWithDeclination(
+    coord1: IPosition,
+    coord2: IPosition,
+  ): Promise<number> {
+    const bearing = this.calculateBearing(coord1, coord2);
+    const declination = await this.getMagneticDeclination(coord1);
+    const magneticBearing = (bearing + declination + 360) % 360;
+    return magneticBearing;
   }
 }

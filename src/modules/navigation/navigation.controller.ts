@@ -14,7 +14,7 @@ export class NavigationController {
   }
 
   @Get('create-flight-legs-test')
-  createFlightLegsTest(): void {
+  createFlightLegsTest(): Promise<void> {
     return this.navigationService.createFlightLegs();
   }
 
