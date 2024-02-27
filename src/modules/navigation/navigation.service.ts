@@ -138,11 +138,10 @@ export class NavigationService {
                 return 'error';
               }
               if (index !== 0) {
-                console.log(this.flight.legs);
-                // this.flight.legs[-1].togo = this.getDistance(
-                //   this.flight.legs[-1].position,
-                //   point,
-                // );
+                this.flight.legs[index - 1].togo = this.getDistance(
+                  this.flight.legs[index - 1].position,
+                  point,
+                );
               }
               if (this.flight.legs) {
                 this.flight.legs.push({
@@ -169,7 +168,6 @@ export class NavigationService {
               const airwayIntersections = this.databaseService.getAirwayByIdent(
                 enrouteItem.ident.trim(),
               )?.intersections;
-              console.log(airwayIntersections);
 
               if (airwayIntersections) {
                 let requiredIntersections;
@@ -190,12 +188,12 @@ export class NavigationService {
                     index2,
                   );
                 }
-                console.log('############### \n', requiredIntersections);
                 requiredIntersections.forEach((intersection) => {
-                  // this.flight.legs[-1].togo = this.getDistance(
-                  //   this.flight.legs[-1].position,
-                  //   intersection.position,
-                  // );
+                  this.flight.legs[this.flight.legs.length - 1].togo =
+                    this.getDistance(
+                      this.flight.legs[this.flight.legs.length - 1].position,
+                      intersection.position,
+                    );
                   this.flight.legs.push({
                     type: ELegType.INTERSECTION,
                     ident: intersection.ident,
@@ -320,7 +318,6 @@ export class NavigationService {
     const declination = await geomagnetism
       .model()
       .point([coord1.latitude, coord1.longitude]).decl;
-    console.log(bearing);
     const magneticBearing = Math.round((bearing - declination + 360) % 360);
     return magneticBearing;
   }
