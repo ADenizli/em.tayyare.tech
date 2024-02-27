@@ -11,6 +11,7 @@ import EnrouteConfigrationTypes from './enums/EnrouteConfigrationTypes';
 import IPosition from '@modules/common/interfaces/Position';
 import NavaidTypes from '@modules/database/enums/NavaidTypes';
 import { HttpService } from '@nestjs/axios';
+import * as geomagnetism from 'geomagnetism';
 
 @Injectable()
 export class NavigationService {
@@ -297,28 +298,30 @@ export class NavigationService {
         Math.cos(destLatRad) *
         Math.cos(destLngRad - startLngRad);
     const bearing = this.toDegrees(Math.atan2(y, x));
-
     return (bearing + 360) % 360; // Normalize to 0-360
   }
 
-  async getMagneticDeclination(coords: IPosition): Promise<number> {
-    const url = `https://www.ngdc.noaa.gov/geomag-web/calculators/calculateDeclination?lat1=${coords.latitude}&lon1=${coords.longitude}&resultFormat=json`;
-    try {
-      const response = await this.httpService.get(url).toPromise();
-      return response.data.result[0].declination;
-    } catch (error) {
-      console.error('Error fetching magnetic declination:', error);
-      return 0;
-    }
-  }
+  // async getMagneticDeclination(coords: IPosition): Promise<number> {
+  //   const url = `https://www.ngdc.noaa.gov/geomag-web/calculators/calculateDeclination?lat1=${coords.latitude}&lon1=${coords.longitude}&resultFormat=json`;
+  //   try {
+  //     const response = await this.httpService.get(url).toPromise();
+  //     return response.data.result[0].declination;
+  //   } catch (error) {
+  //     console.error('Error fetching magnetic declination:', error);
+  //     return 0;
+  //   }
+  // }
 
   async calculateBearingWithDeclination(
     coord1: IPosition,
     coord2: IPosition,
   ): Promise<number> {
     const bearing = this.calculateBearing(coord1, coord2);
-    const declination = await this.getMagneticDeclination(coord1);
-    const magneticBearing = (bearing + declination + 360) % 360;
+    const declination = await geomagnetism
+      .model()
+      .point([coord1.latitude, coord1.longitude]).decl;
+    console.log(bearing);
+    const magneticBearing = Math.round((bearing - declination + 360) % 360);
     return magneticBearing;
   }
 }
