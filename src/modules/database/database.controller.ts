@@ -1,6 +1,5 @@
 import { Controller, Get, Param } from '@nestjs/common';
 import { DatabaseService } from './database.service';
-import IAirport from './interfaces/Airport';
 
 @Controller('database')
 export class DatabaseController {
@@ -12,12 +11,12 @@ export class DatabaseController {
   }
 
   @Get('airports/:icao')
-  getAirportData(@Param('icao') icao: string): IAirport {
-    return this.databaseService.getAirportData(icao);
+  getAirportData(@Param('icao') icao: string): any {
+    return this.databaseService.getAirport(icao);
   }
 
-  @Get('errorsOnAirports')
-  checkErrorsOnAirports(): boolean {
-    return this.databaseService.checkErrorsOnAirports();
-  }
+  // @Get('errorsOnAirports')
+  // checkErrorsOnAirports(): boolean {
+  //   return this.databaseService.checkErrorsOnAirports();
+  // }
 }

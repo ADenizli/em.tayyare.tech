@@ -59,3 +59,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /src/modules/database/navdata/*
 /src/modules/database/navdata_test/*
 /src/modules/database/navdata_full/*
+
+/src/TayyareDependencies
