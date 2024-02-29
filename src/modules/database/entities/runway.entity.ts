@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryKey,
-  Property,
-  ManyToMany,
-  ManyToOne,
-} from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { SurfaceTypeEntity } from './surfaceType.entity'; // make sure the path is correct
 import { AirportEntity } from './airport.entity';
 
@@ -13,13 +7,13 @@ export class RunwayEntity {
   @PrimaryKey()
   id: number;
 
-  @ManyToOne(() => AirportEntity)
+  @ManyToOne(() => AirportEntity, { joinColumn: 'airportID' })
   airportID: AirportEntity;
 
   @Property()
   ident: string;
 
-  @Property({ columnType: 'double' })
+  @Property({ columnType: 'double', fieldName: 'trueHeading' })
   trueHeading: number;
 
   @Property()
@@ -28,8 +22,9 @@ export class RunwayEntity {
   @Property()
   width: number;
 
-  @ManyToOne(() => SurfaceTypeEntity)
-  surface?: SurfaceTypeEntity;
+  // TODO: FIX THIS
+  // @ManyToOne(() => SurfaceTypeEntity, { joinColumn: 'surface_type' })
+  // surface?: SurfaceTypeEntity;
 
   @Property({ columnType: 'double' })
   latitude: number;

@@ -5,7 +5,7 @@ import { DatabaseModule } from '@modules/database/database.module';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { SqliteDriver } from '@mikro-orm/sqlite';
 import DatabaseModuleEntities from '@modules/database/entities';
-// import { NavigationModule } from '@modules/navigation/navigation.module';
+import { NavigationModule } from '@modules/navigation/navigation.module';
 
 @Module({
   imports: [
@@ -15,6 +15,7 @@ import DatabaseModuleEntities from '@modules/database/entities';
       driver: SqliteDriver,
     }),
     DatabaseModule,
+    NavigationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

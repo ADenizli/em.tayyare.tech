@@ -1,14 +1,19 @@
-// import { Module } from '@nestjs/common';
-// import { NavigationController } from './navigation.controller';
-// import { NavigationService } from './navigation.service';
-// import { DatabaseModule } from '../database/database.module';
-// import { DatabaseService } from '@modules/database/database.service';
-// import { FileSystemService } from '@modules/file-system/file-system.service';
-// import { HttpModule } from '@nestjs/axios';
+import { Module } from '@nestjs/common';
+import { NavigationService } from './navigation.service';
+import { NavigationController } from './navigation.controller';
+import { DatabaseModule } from '@modules/database/database.module';
+import { DatabaseService } from '@modules/database/database.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import DatabaseModuleEntities from '@modules/database/entities';
 
-// @Module({
-//   imports: [DatabaseModule, HttpModule],
-//   controllers: [NavigationController],
-//   providers: [NavigationService, FileSystemService, DatabaseService],
-// })
-// export class NavigationModule {}
+@Module({
+  imports: [
+    DatabaseModule,
+    MikroOrmModule.forFeature({
+      entities: [...DatabaseModuleEntities],
+    }),
+  ],
+  controllers: [NavigationController],
+  providers: [DatabaseService, NavigationService],
+})
+export class NavigationModule {}

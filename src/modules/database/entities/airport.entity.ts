@@ -1,4 +1,11 @@
-import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
+import {
+  Collection,
+  Entity,
+  OneToMany,
+  PrimaryKey,
+  Property,
+} from '@mikro-orm/core';
+import { RunwayEntity } from './runway.entity';
 
 @Entity({ tableName: 'Airports' })
 export class AirportEntity {
@@ -25,4 +32,7 @@ export class AirportEntity {
 
   @Property({ nullable: true })
   transitionLevel: number;
+
+  @OneToMany(() => RunwayEntity, (runway) => runway.airportID)
+  runways: Collection<RunwayEntity> = new Collection<RunwayEntity>(this);
 }

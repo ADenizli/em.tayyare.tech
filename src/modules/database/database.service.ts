@@ -18,8 +18,10 @@ export class DatabaseService {
   }
 
   async getAirport(icao: string) {
-    const airport = await this.airportRepository.findOne({ icao });
-    console.log(await this.runwayRepository.find({ airportID: airport.id }));
-    return await this.airportRepository.find({ icao });
+    const airport = await this.airportRepository.findOne(
+      { icao },
+      { populate: ['runways'] },
+    );
+    return airport;
   }
 }

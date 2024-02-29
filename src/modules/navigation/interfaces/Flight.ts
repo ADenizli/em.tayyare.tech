@@ -1,37 +1,35 @@
 import IPosition from '@modules/common/interfaces/Position';
-import EApproachConfigrations from '../enums/ApproachConfigrations';
-import EDepartureConfigrations from '../enums/DepartureConfigrations';
-import EnrouteConfigrationTypes from '../enums/EnrouteConfigrationTypes';
-import ILeg from './Leg';
+import EDepartureTypes from '../enum/DepartureTypes';
+import ELegTypes from '../enum/LegTypes';
+import ERouteItemTypes from '../enum/RouteItemTypes';
 
 export default interface IFlight {
-  gate?: string;
-  position: IPosition;
-
+  callsign: string;
   origin: string;
-  // because of military purposes
-  destination?: string;
-
-  departureConfigration?: {
-    type: EDepartureConfigrations;
+  destination: string;
+  route?: IRouteItem[];
+  departureConfigration: {
     runway: string;
-    sid?: string;
+    activeLandingRunway: string;
+    departureType: EDepartureTypes;
+    ident?: string;
   };
-
-  enrouteConfigration?: IEnrouteItem[];
-
-  approachConfigration?: {
-    type: EApproachConfigrations;
-    runway: string;
-    star?: string;
-  };
-
-  // calculated
-
-  legs?: ILeg[];
+  legs: ILeg[];
 }
 
-export interface IEnrouteItem {
+export interface IRouteItem {
+  type: ERouteItemTypes;
   ident: string;
-  type: EnrouteConfigrationTypes;
+}
+
+export interface ILeg {
+  type: ELegTypes;
+  ident: string;
+  position: IPosition;
+  restrictions?: {
+    maxAlt?: number;
+    minAlt?: number;
+    maxSpd?: number;
+    minSpd?: number;
+  };
 }

@@ -1,468 +1,468 @@
-import { Injectable } from '@nestjs/common';
-import IAirport, { IGate, IRunway } from './interfaces/Airport';
-import { FileSystemService } from '@modules/file-system/file-system.service';
-import * as path from 'path';
-import IORunway from './interfaces/ORunway';
-import IOAirport from './interfaces/OAirport';
-import IOCountry from './interfaces/OCountry';
-import IORegion from './interfaces/ORegion';
-import parseCoordinate from '@modules/common/helpers/ParseCoordinate';
-import IFix from './interfaces/Fix';
-import IJRunway from './interfaces/JRunway';
-import INavaid from './interfaces/Navaid';
-import NavaidTypes from './enums/NavaidTypes';
-import FrequencyTypes from './enums/FrequencyTypes';
-import IAirway from './interfaces/Airway';
+// import { Injectable } from '@nestjs/common';
+// import IAirport, { IGate, IRunway } from './interfaces/Airport';
+// import { FileSystemService } from '@modules/file-system/file-system.service';
+// import * as path from 'path';
+// import IORunway from './interfaces/ORunway';
+// import IOAirport from './interfaces/OAirport';
+// import IOCountry from './interfaces/OCountry';
+// import IORegion from './interfaces/ORegion';
+// import parseCoordinate from '@modules/common/helpers/ParseCoordinate';
+// import IFix from './interfaces/Fix';
+// import IJRunway from './interfaces/JRunway';
+// import INavaid from './interfaces/Navaid';
+// import NavaidTypes from './enums/NavaidTypes';
+// import FrequencyTypes from './enums/FrequencyTypes';
+// import IAirway from './interfaces/Airway';
 
-@Injectable()
-export class DatabaseService {
-  private airports: IAirport[] = [];
-  private errorsOnAirports: string[] = [];
-  private fixes: IFix[] = [];
-  private navaids: INavaid[] = [];
-  private airways: IAirway[] = [];
-  private jRunways: IJRunway[];
-  private oRunways: IORunway[];
-  private oAirports: IOAirport[];
-  private oCountries: IOCountry[];
-  private oRegions: IORegion[];
+// @Injectable()
+// export class DatabaseService {
+//   private airports: IAirport[] = [];
+//   private errorsOnAirports: string[] = [];
+//   private fixes: IFix[] = [];
+//   private navaids: INavaid[] = [];
+//   private airways: IAirway[] = [];
+//   private jRunways: IJRunway[];
+//   private oRunways: IORunway[];
+//   private oAirports: IOAirport[];
+//   private oCountries: IOCountry[];
+//   private oRegions: IORegion[];
 
-  constructor(private readonly fileSystemService: FileSystemService) {
-    // # on development process, we will get values from navdata folder which is under database module #
-    this.serviceInitializement()
-      .then(() => {
-        console.log('Database has initialized!');
-      })
-      .catch((error) => {
-        console.error('Error during database initialization:', error);
-      });
-  }
+//   constructor(private readonly fileSystemService: FileSystemService) {
+//     // # on development process, we will get values from navdata folder which is under database module #
+//     this.serviceInitializement()
+//       .then(() => {
+//         console.log('Database has initialized!');
+//       })
+//       .catch((error) => {
+//         console.error('Error during database initialization:', error);
+//       });
+//   }
 
-  // Service Initializement Functions
-  async serviceInitializement() {
-    this.oRegions = await this.setORegions();
-    this.oCountries = await this.setOCountries();
-    this.oRunways = await this.setORunways();
-    this.oAirports = await this.setOAirports();
-    this.jRunways = await this.setJRunways();
-    this.setNavAidData();
-    this.setAirportData();
-    this.setFixes();
-    this.setAirwayData();
-  }
-  async setAirportData(): Promise<any | IAirport[]> {
-    const airportRegs = await this.fileSystemService.getFilesInFolder(
-      'modules/database/navdata_test/airports',
-    );
+//   // Service Initializement Functions
+//   async serviceInitializement() {
+//     this.oRegions = await this.setORegions();
+//     this.oCountries = await this.setOCountries();
+//     this.oRunways = await this.setORunways();
+//     this.oAirports = await this.setOAirports();
+//     this.jRunways = await this.setJRunways();
+//     this.setNavAidData();
+//     this.setAirportData();
+//     this.setFixes();
+//     this.setAirwayData();
+//   }
+//   async setAirportData(): Promise<any | IAirport[]> {
+//     const airportRegs = await this.fileSystemService.getFilesInFolder(
+//       'modules/database/navdata_test/airports',
+//     );
 
-    airportRegs.forEach(async (airportReg) => {
-      const icao = path.parse(airportReg).name;
-      const rawJD = (await this.fileSystemService.readFile(airportReg)).split(
-        '\n',
-      );
-      const oAirport = this.getAirportOAData(icao);
-      const oRunwaysByAirport = this.getRunwaysFromORData(icao);
-      const countryData =
-        oAirport && this.getCountryOCData(oAirport.iso_country);
-      const regionData = oAirport && this.getRegionORData(oAirport.iso_region);
+//     airportRegs.forEach(async (airportReg) => {
+//       const icao = path.parse(airportReg).name;
+//       const rawJD = (await this.fileSystemService.readFile(airportReg)).split(
+//         '\n',
+//       );
+//       const oAirport = this.getAirportOAData(icao);
+//       const oRunwaysByAirport = this.getRunwaysFromORData(icao);
+//       const countryData =
+//         oAirport && this.getCountryOCData(oAirport.iso_country);
+//       const regionData = oAirport && this.getRegionORData(oAirport.iso_region);
 
-      if (oAirport && oRunwaysByAirport && countryData && regionData) {
-        const gates: IGate[] = [];
-        const runways: IRunway[] = [];
-        rawJD.forEach((line) => {
-          if (line.startsWith('GATE') && !line.startsWith('GATES')) {
-            const parts = line.split(' ');
-            const ident = parts[1];
-            const latitude = parseCoordinate(parts[2], parts[3], parts[4]);
-            const longitude = parseCoordinate(parts[5], parts[6], parts[7]);
-            gates.push({ ident, position: { latitude, longitude } });
-          } else if (line.startsWith('RNW') && !line.startsWith('RNWS')) {
-            const parts = line.split(' ');
-            const ident = parts[1].trim();
-            const oRunway = oRunwaysByAirport.find(
-              (runway) =>
-                runway.le_ident.trim() === ident ||
-                runway.he_ident.trim() === ident,
-            );
-            if (oRunway) {
-              const JRunway = this.getJRunwayData(oAirport.ident, ident);
-              const hl = oRunway.le_ident.trim() === ident ? 'le' : 'he';
-              runways.push({
-                ident,
-                position: {
-                  latitude: oRunway[`${hl}_latitude_deg`],
-                  longitude: oRunway[`${hl}_longitude_deg`],
-                  elevation: oRunway[`${hl}_elevation_feet`],
-                },
-                instrument_frequency: JRunway
-                  ? JRunway.frequency !== '000.00'
-                    ? JRunway.frequency
-                    : undefined
-                  : undefined,
-                math_heading: oRunway[`${hl}_heading_degT`],
-                course: JRunway
-                  ? JRunway.course
-                  : oRunway[`${hl}_heading_degT`].toString(),
-                is_closed: false,
-              });
-            }
-          }
-        });
-        this.airports.push({
-          icao: oAirport.ident,
-          iata: oAirport.iata_code,
-          name: oAirport.name,
-          position: {
-            latitude: oAirport.latitude_deg,
-            longitude: oAirport.longitude_deg,
-            elevation: oAirport.elevation_ft,
-          },
-          iso_country: {
-            iso: oAirport.iso_country,
-            name: countryData.name,
-            continent: countryData.continent,
-          },
-          iso_region: {
-            iso: oAirport.iso_region,
-            city: regionData.city,
-          },
-          gates,
-          runways,
-        });
-      } else {
-        this.errorsOnAirports.push(icao);
-      }
-    });
-  }
+//       if (oAirport && oRunwaysByAirport && countryData && regionData) {
+//         const gates: IGate[] = [];
+//         const runways: IRunway[] = [];
+//         rawJD.forEach((line) => {
+//           if (line.startsWith('GATE') && !line.startsWith('GATES')) {
+//             const parts = line.split(' ');
+//             const ident = parts[1];
+//             const latitude = parseCoordinate(parts[2], parts[3], parts[4]);
+//             const longitude = parseCoordinate(parts[5], parts[6], parts[7]);
+//             gates.push({ ident, position: { latitude, longitude } });
+//           } else if (line.startsWith('RNW') && !line.startsWith('RNWS')) {
+//             const parts = line.split(' ');
+//             const ident = parts[1].trim();
+//             const oRunway = oRunwaysByAirport.find(
+//               (runway) =>
+//                 runway.le_ident.trim() === ident ||
+//                 runway.he_ident.trim() === ident,
+//             );
+//             if (oRunway) {
+//               const JRunway = this.getJRunwayData(oAirport.ident, ident);
+//               const hl = oRunway.le_ident.trim() === ident ? 'le' : 'he';
+//               runways.push({
+//                 ident,
+//                 position: {
+//                   latitude: oRunway[`${hl}_latitude_deg`],
+//                   longitude: oRunway[`${hl}_longitude_deg`],
+//                   elevation: oRunway[`${hl}_elevation_feet`],
+//                 },
+//                 instrument_frequency: JRunway
+//                   ? JRunway.frequency !== '000.00'
+//                     ? JRunway.frequency
+//                     : undefined
+//                   : undefined,
+//                 math_heading: oRunway[`${hl}_heading_degT`],
+//                 course: JRunway
+//                   ? JRunway.course
+//                   : oRunway[`${hl}_heading_degT`].toString(),
+//                 is_closed: false,
+//               });
+//             }
+//           }
+//         });
+//         this.airports.push({
+//           icao: oAirport.ident,
+//           iata: oAirport.iata_code,
+//           name: oAirport.name,
+//           position: {
+//             latitude: oAirport.latitude_deg,
+//             longitude: oAirport.longitude_deg,
+//             elevation: oAirport.elevation_ft,
+//           },
+//           iso_country: {
+//             iso: oAirport.iso_country,
+//             name: countryData.name,
+//             continent: countryData.continent,
+//           },
+//           iso_region: {
+//             iso: oAirport.iso_region,
+//             city: regionData.city,
+//           },
+//           gates,
+//           runways,
+//         });
+//       } else {
+//         this.errorsOnAirports.push(icao);
+//       }
+//     });
+//   }
 
-  async setORunways() {
-    const OR_Clustered: IORunway[] = [];
-    const orRaw = (
-      await this.fileSystemService.readFile(
-        'modules/database/navdata_test/runways.csv',
-      )
-    ).split('\n');
-    orRaw.forEach((runway, index) => {
-      if (index !== 0) {
-        const commaSeperatedRunway = runway.split(',');
-        OR_Clustered.push({
-          id: Number(commaSeperatedRunway[0]),
-          airport_ref: Number(commaSeperatedRunway[1]),
-          airport_ident: commaSeperatedRunway[2].replace(/"/g, ''),
-          length_ft: Number(commaSeperatedRunway[3]),
-          width_ft: Number(commaSeperatedRunway[4]),
-          surface: commaSeperatedRunway[5].replace(/"/g, ''),
-          lighted: Boolean(commaSeperatedRunway[6]),
-          closed: Boolean(commaSeperatedRunway[7]),
-          le_ident: commaSeperatedRunway[8].replace(/"/g, ''),
-          le_latitude_deg: Number(commaSeperatedRunway[9]),
-          le_longitude_deg: Number(commaSeperatedRunway[10]),
-          le_elevation_ft: Number(commaSeperatedRunway[11]),
-          le_heading_degT: Number(commaSeperatedRunway[12]),
-          le_displaced_threshold_ft: Number(commaSeperatedRunway[13]),
-          he_ident: commaSeperatedRunway[14].replace(/"/g, ''),
-          he_latitude_deg: Number(commaSeperatedRunway[15]),
-          he_longitude_deg: Number(commaSeperatedRunway[16]),
-          he_elevation_ft: Number(commaSeperatedRunway[17]),
-          he_heading_degT: Number(commaSeperatedRunway[18]),
-          he_displaced_threshold_ft: Number(commaSeperatedRunway[19]),
-        });
-      }
-    });
-    return OR_Clustered;
-  }
+//   async setORunways() {
+//     const OR_Clustered: IORunway[] = [];
+//     const orRaw = (
+//       await this.fileSystemService.readFile(
+//         'modules/database/navdata_test/runways.csv',
+//       )
+//     ).split('\n');
+//     orRaw.forEach((runway, index) => {
+//       if (index !== 0) {
+//         const commaSeperatedRunway = runway.split(',');
+//         OR_Clustered.push({
+//           id: Number(commaSeperatedRunway[0]),
+//           airport_ref: Number(commaSeperatedRunway[1]),
+//           airport_ident: commaSeperatedRunway[2].replace(/"/g, ''),
+//           length_ft: Number(commaSeperatedRunway[3]),
+//           width_ft: Number(commaSeperatedRunway[4]),
+//           surface: commaSeperatedRunway[5].replace(/"/g, ''),
+//           lighted: Boolean(commaSeperatedRunway[6]),
+//           closed: Boolean(commaSeperatedRunway[7]),
+//           le_ident: commaSeperatedRunway[8].replace(/"/g, ''),
+//           le_latitude_deg: Number(commaSeperatedRunway[9]),
+//           le_longitude_deg: Number(commaSeperatedRunway[10]),
+//           le_elevation_ft: Number(commaSeperatedRunway[11]),
+//           le_heading_degT: Number(commaSeperatedRunway[12]),
+//           le_displaced_threshold_ft: Number(commaSeperatedRunway[13]),
+//           he_ident: commaSeperatedRunway[14].replace(/"/g, ''),
+//           he_latitude_deg: Number(commaSeperatedRunway[15]),
+//           he_longitude_deg: Number(commaSeperatedRunway[16]),
+//           he_elevation_ft: Number(commaSeperatedRunway[17]),
+//           he_heading_degT: Number(commaSeperatedRunway[18]),
+//           he_displaced_threshold_ft: Number(commaSeperatedRunway[19]),
+//         });
+//       }
+//     });
+//     return OR_Clustered;
+//   }
 
-  async setJRunways() {
-    const J_Clustered: IJRunway[] = [];
-    const jRaw = (
-      await this.fileSystemService.readFile(
-        'modules/database/navdata_test/runways.txt',
-      )
-    ).split('\n');
-    jRaw.forEach((line) => {
-      if (!line.startsWith(';')) {
-        const airport = line.substring(24, 28).trim();
-        const ident = line.substring(28, 31).trim();
-        const latitude = Number(line.substring(39, 49).trim());
-        const longitude = Number(line.substring(49, 60).trim());
-        const frequency = line.substring(60, 66).trim();
-        const course = line.substring(66, 69).trim();
+//   async setJRunways() {
+//     const J_Clustered: IJRunway[] = [];
+//     const jRaw = (
+//       await this.fileSystemService.readFile(
+//         'modules/database/navdata_test/runways.txt',
+//       )
+//     ).split('\n');
+//     jRaw.forEach((line) => {
+//       if (!line.startsWith(';')) {
+//         const airport = line.substring(24, 28).trim();
+//         const ident = line.substring(28, 31).trim();
+//         const latitude = Number(line.substring(39, 49).trim());
+//         const longitude = Number(line.substring(49, 60).trim());
+//         const frequency = line.substring(60, 66).trim();
+//         const course = line.substring(66, 69).trim();
 
-        J_Clustered.push({
-          airport,
-          ident,
-          frequency,
-          position: { latitude, longitude },
-          course,
-        });
-      }
-    });
-    return J_Clustered;
-  }
+//         J_Clustered.push({
+//           airport,
+//           ident,
+//           frequency,
+//           position: { latitude, longitude },
+//           course,
+//         });
+//       }
+//     });
+//     return J_Clustered;
+//   }
 
-  async setOAirports() {
-    const OA_Clustered: IOAirport[] = [];
-    const oaRaw = (
-      await this.fileSystemService.readFile(
-        'modules/database/navdata_test/airports.csv',
-      )
-    ).split('\n');
-    oaRaw.forEach((oairport, index) => {
-      if (index !== 0) {
-        const commaSeperatedAirport = oairport.split(',');
-        OA_Clustered.push({
-          id: Number(commaSeperatedAirport[0]),
-          ident: commaSeperatedAirport[1].replace(/"/g, ''),
-          type: commaSeperatedAirport[2].replace(/"/g, ''),
-          name: commaSeperatedAirport[3].replace(/"/g, ''),
-          latitude_deg: Number(commaSeperatedAirport[4]),
-          longitude_deg: Number(commaSeperatedAirport[5]),
-          elevation_ft: Number(commaSeperatedAirport[6]),
-          continent: commaSeperatedAirport[7].replace(/"/g, ''),
-          iso_country: commaSeperatedAirport[8].replace(/"/g, ''),
-          iso_region: commaSeperatedAirport[9].replace(/"/g, ''),
-          municipality: commaSeperatedAirport[10].replace(/"/g, ''),
-          scheduled_service: commaSeperatedAirport[11].replace(/"/g, ''),
-          gps_code: commaSeperatedAirport[12].replace(/"/g, ''),
-          iata_code: commaSeperatedAirport[13].replace(/"/g, ''),
-          local_code: commaSeperatedAirport[14].replace(/"/g, ''),
-        });
-      }
-    });
-    return OA_Clustered;
-  }
+//   async setOAirports() {
+//     const OA_Clustered: IOAirport[] = [];
+//     const oaRaw = (
+//       await this.fileSystemService.readFile(
+//         'modules/database/navdata_test/airports.csv',
+//       )
+//     ).split('\n');
+//     oaRaw.forEach((oairport, index) => {
+//       if (index !== 0) {
+//         const commaSeperatedAirport = oairport.split(',');
+//         OA_Clustered.push({
+//           id: Number(commaSeperatedAirport[0]),
+//           ident: commaSeperatedAirport[1].replace(/"/g, ''),
+//           type: commaSeperatedAirport[2].replace(/"/g, ''),
+//           name: commaSeperatedAirport[3].replace(/"/g, ''),
+//           latitude_deg: Number(commaSeperatedAirport[4]),
+//           longitude_deg: Number(commaSeperatedAirport[5]),
+//           elevation_ft: Number(commaSeperatedAirport[6]),
+//           continent: commaSeperatedAirport[7].replace(/"/g, ''),
+//           iso_country: commaSeperatedAirport[8].replace(/"/g, ''),
+//           iso_region: commaSeperatedAirport[9].replace(/"/g, ''),
+//           municipality: commaSeperatedAirport[10].replace(/"/g, ''),
+//           scheduled_service: commaSeperatedAirport[11].replace(/"/g, ''),
+//           gps_code: commaSeperatedAirport[12].replace(/"/g, ''),
+//           iata_code: commaSeperatedAirport[13].replace(/"/g, ''),
+//           local_code: commaSeperatedAirport[14].replace(/"/g, ''),
+//         });
+//       }
+//     });
+//     return OA_Clustered;
+//   }
 
-  async setOCountries() {
-    const OC_Clustered: IOCountry[] = [];
-    const ocRaw = (
-      await this.fileSystemService.readFile(
-        'modules/database/navdata_test/countries.csv',
-      )
-    ).split('\n');
-    ocRaw.forEach((country, index) => {
-      if (index !== 0) {
-        const commaSeperatedCountry = country.split(',');
-        OC_Clustered.push({
-          iso: commaSeperatedCountry[1].replace(/"/g, ''),
-          name: commaSeperatedCountry[2].replace(/"/g, ''),
-          continent: commaSeperatedCountry[3].replace(/"/g, ''),
-        });
-      }
-    });
-    return OC_Clustered;
-  }
+//   async setOCountries() {
+//     const OC_Clustered: IOCountry[] = [];
+//     const ocRaw = (
+//       await this.fileSystemService.readFile(
+//         'modules/database/navdata_test/countries.csv',
+//       )
+//     ).split('\n');
+//     ocRaw.forEach((country, index) => {
+//       if (index !== 0) {
+//         const commaSeperatedCountry = country.split(',');
+//         OC_Clustered.push({
+//           iso: commaSeperatedCountry[1].replace(/"/g, ''),
+//           name: commaSeperatedCountry[2].replace(/"/g, ''),
+//           continent: commaSeperatedCountry[3].replace(/"/g, ''),
+//         });
+//       }
+//     });
+//     return OC_Clustered;
+//   }
 
-  async setORegions() {
-    const OR_Clustered: IORegion[] = [];
-    const orRaw = (
-      await this.fileSystemService.readFile(
-        'modules/database/navdata_test/regions.csv',
-      )
-    ).split('\n');
-    orRaw.forEach((region, index) => {
-      if (index !== 0) {
-        const commaSeperatedRegion = region.split(',');
-        OR_Clustered.push({
-          iso: commaSeperatedRegion[1].replace(/"/g, ''),
-          city: commaSeperatedRegion[3].replace(/"/g, ''),
-          continent: commaSeperatedRegion[4].replace(/"/g, ''),
-        });
-      }
-    });
-    return OR_Clustered;
-  }
+//   async setORegions() {
+//     const OR_Clustered: IORegion[] = [];
+//     const orRaw = (
+//       await this.fileSystemService.readFile(
+//         'modules/database/navdata_test/regions.csv',
+//       )
+//     ).split('\n');
+//     orRaw.forEach((region, index) => {
+//       if (index !== 0) {
+//         const commaSeperatedRegion = region.split(',');
+//         OR_Clustered.push({
+//           iso: commaSeperatedRegion[1].replace(/"/g, ''),
+//           city: commaSeperatedRegion[3].replace(/"/g, ''),
+//           continent: commaSeperatedRegion[4].replace(/"/g, ''),
+//         });
+//       }
+//     });
+//     return OR_Clustered;
+//   }
 
-  getRunwaysFromORData(icao: string): IORunway[] {
-    return this.oRunways.filter((oRunway) => oRunway.airport_ident === icao);
-  }
+//   getRunwaysFromORData(icao: string): IORunway[] {
+//     return this.oRunways.filter((oRunway) => oRunway.airport_ident === icao);
+//   }
 
-  getAirportOAData(icao: string): IOAirport {
-    return this.oAirports.find((oAirport) => oAirport.ident === icao);
-  }
+//   getAirportOAData(icao: string): IOAirport {
+//     return this.oAirports.find((oAirport) => oAirport.ident === icao);
+//   }
 
-  getRegionORData(iso: string): IORegion {
-    return this.oRegions.find((oRegion) => oRegion.iso === iso);
-  }
+//   getRegionORData(iso: string): IORegion {
+//     return this.oRegions.find((oRegion) => oRegion.iso === iso);
+//   }
 
-  getCountryOCData(iso: string): IOCountry {
-    return this.oCountries.find((oCountry) => oCountry.iso === iso);
-  }
+//   getCountryOCData(iso: string): IOCountry {
+//     return this.oCountries.find((oCountry) => oCountry.iso === iso);
+//   }
 
-  getAirportData(icao: string): IAirport {
-    return this.airports.find((airport) => airport.icao === icao);
-  }
+//   getAirportData(icao: string): IAirport {
+//     return this.airports.find((airport) => airport.icao === icao);
+//   }
 
-  getJRunwayData(icao: string, ident: string): IJRunway {
-    return this.jRunways.find(
-      (runway) => runway.airport === icao && runway.ident === ident,
-    );
-  }
+//   getJRunwayData(icao: string, ident: string): IJRunway {
+//     return this.jRunways.find(
+//       (runway) => runway.airport === icao && runway.ident === ident,
+//     );
+//   }
 
-  async setFixes() {
-    const fixesRaw = (
-      await this.fileSystemService.readFile(
-        'modules/database/navdata_test/fixes.txt',
-      )
-    ).split('\n');
+//   async setFixes() {
+//     const fixesRaw = (
+//       await this.fileSystemService.readFile(
+//         'modules/database/navdata_test/fixes.txt',
+//       )
+//     ).split('\n');
 
-    fixesRaw.forEach((line) => {
-      if (!line.startsWith(';')) {
-        const lineCharacters = line.split('');
-        let ident;
-        if (lineCharacters[3] === ' ') {
-          ident = line.substring(0, 3);
-        } else if (lineCharacters[4] === ' ') {
-          ident = line.substring(0, 4);
-        } else {
-          ident = line.substring(0, 5);
-        }
-        const latitude = Number(line.substring(29, 39).trim());
-        const longitude = Number(line.substring(40, 50).trim());
-        this.fixes.push({ ident, position: { latitude, longitude } });
-      }
-    });
-  }
+//     fixesRaw.forEach((line) => {
+//       if (!line.startsWith(';')) {
+//         const lineCharacters = line.split('');
+//         let ident;
+//         if (lineCharacters[3] === ' ') {
+//           ident = line.substring(0, 3);
+//         } else if (lineCharacters[4] === ' ') {
+//           ident = line.substring(0, 4);
+//         } else {
+//           ident = line.substring(0, 5);
+//         }
+//         const latitude = Number(line.substring(29, 39).trim());
+//         const longitude = Number(line.substring(40, 50).trim());
+//         this.fixes.push({ ident, position: { latitude, longitude } });
+//       }
+//     });
+//   }
 
-  getFixesByIdent(ident: string): IFix | IFix[] {
-    const val = this.fixes.filter((fix) => fix.ident === ident);
-    switch (val.length) {
-      case 0:
-        return undefined;
-      case 1:
-        return val[0];
-      case 2:
-        return val;
-    }
-  }
+//   getFixesByIdent(ident: string): IFix | IFix[] {
+//     const val = this.fixes.filter((fix) => fix.ident === ident);
+//     switch (val.length) {
+//       case 0:
+//         return undefined;
+//       case 1:
+//         return val[0];
+//       case 2:
+//         return val;
+//     }
+//   }
 
-  getAirwayByIdent(ident: string): IAirway {
-    return this.airways.find((airway) => airway.ident === ident);
-  }
+//   getAirwayByIdent(ident: string): IAirway {
+//     return this.airways.find((airway) => airway.ident === ident);
+//   }
 
-  async setNavAidData() {
-    const navaidsRaw = (
-      await this.fileSystemService.readFile(
-        'modules/database/navdata_test/navaids.txt',
-      )
-    ).split('\n');
+//   async setNavAidData() {
+//     const navaidsRaw = (
+//       await this.fileSystemService.readFile(
+//         'modules/database/navdata_test/navaids.txt',
+//       )
+//     ).split('\n');
 
-    navaidsRaw.forEach((navaid) => {
-      if (!navaid.startsWith(';')) {
-        this.navaids.push({
-          ident: navaid.substr(24, 5).trim(),
-          secondIdent: navaid.substr(0, 24).trim(),
-          type: navaid.substr(29, 5).trim() as NavaidTypes,
-          position: {
-            latitude: parseFloat(navaid.substr(34, 10).trim()),
-            longitude: parseFloat(navaid.substr(44, 10).trim()),
-          },
-          frequency: navaid.substr(54, 6).trim(),
-          frequencyType: navaid.substr(60, 1).trim() as FrequencyTypes,
-        });
-      }
-    });
-  }
+//     navaidsRaw.forEach((navaid) => {
+//       if (!navaid.startsWith(';')) {
+//         this.navaids.push({
+//           ident: navaid.substr(24, 5).trim(),
+//           secondIdent: navaid.substr(0, 24).trim(),
+//           type: navaid.substr(29, 5).trim() as NavaidTypes,
+//           position: {
+//             latitude: parseFloat(navaid.substr(34, 10).trim()),
+//             longitude: parseFloat(navaid.substr(44, 10).trim()),
+//           },
+//           frequency: navaid.substr(54, 6).trim(),
+//           frequencyType: navaid.substr(60, 1).trim() as FrequencyTypes,
+//         });
+//       }
+//     });
+//   }
 
-  getNavaidByIdent(ident: string): INavaid | INavaid[] {
-    const val = this.navaids.filter((navaid) => navaid.secondIdent === ident);
+//   getNavaidByIdent(ident: string): INavaid | INavaid[] {
+//     const val = this.navaids.filter((navaid) => navaid.secondIdent === ident);
 
-    switch (val.length) {
-      case 0:
-        return undefined;
-      case 1:
-        return val[0];
-      default:
-        return val;
-    }
-  }
+//     switch (val.length) {
+//       case 0:
+//         return undefined;
+//       case 1:
+//         return val[0];
+//       default:
+//         return val;
+//     }
+//   }
 
-  async setAirwayData() {
-    const airwayRaw = (
-      await this.fileSystemService.readFile(
-        'modules/database/navdata_test/airways.txt',
-      )
-    ).split('\n');
-    airwayRaw.forEach((airway) => {
-      if (!airway.startsWith(';')) {
-        const blankSeperated = airway.split(' ');
-        const ident = blankSeperated[0];
-        const isValidFix = this.getFixesByIdent(blankSeperated[2]);
-        const isValidNavaid = this.getNavaidByIdent(blankSeperated[2]);
+//   async setAirwayData() {
+//     const airwayRaw = (
+//       await this.fileSystemService.readFile(
+//         'modules/database/navdata_test/airways.txt',
+//       )
+//     ).split('\n');
+//     airwayRaw.forEach((airway) => {
+//       if (!airway.startsWith(';')) {
+//         const blankSeperated = airway.split(' ');
+//         const ident = blankSeperated[0];
+//         const isValidFix = this.getFixesByIdent(blankSeperated[2]);
+//         const isValidNavaid = this.getNavaidByIdent(blankSeperated[2]);
 
-        let point;
-        if (isValidNavaid && Array.isArray(isValidNavaid)) {
-          point = isValidNavaid.find(
-            (navaid) =>
-              navaid.type !== NavaidTypes.ILS &&
-              navaid.type !== NavaidTypes.ILSD &&
-              navaid.position.latitude === Number(blankSeperated[3]) &&
-              navaid.position.longitude === Number(blankSeperated[4]),
-          );
-        } else if (isValidNavaid) {
-          point = isValidNavaid;
-        } else if (isValidFix && Array.isArray(isValidFix)) {
-          point = isValidFix.find(
-            (fix) =>
-              fix.position.latitude === Number(blankSeperated[3]) &&
-              fix.position.longitude === Number(blankSeperated[4]),
-          );
-        } else if (isValidFix) {
-          point = isValidFix;
-        } else {
-          point = {
-            ident: blankSeperated[2],
-            position: {
-              latitude: blankSeperated[3],
-              longitude: blankSeperated[4],
-            },
-          };
-        }
-        const validAirway = this.airways.find(
-          (airway) => airway.ident === ident,
-        );
-        if (validAirway) {
-          validAirway.intersections.push(point);
-        } else {
-          this.airways.push({ ident, intersections: [point] });
-        }
-      }
-    });
-  }
+//         let point;
+//         if (isValidNavaid && Array.isArray(isValidNavaid)) {
+//           point = isValidNavaid.find(
+//             (navaid) =>
+//               navaid.type !== NavaidTypes.ILS &&
+//               navaid.type !== NavaidTypes.ILSD &&
+//               navaid.position.latitude === Number(blankSeperated[3]) &&
+//               navaid.position.longitude === Number(blankSeperated[4]),
+//           );
+//         } else if (isValidNavaid) {
+//           point = isValidNavaid;
+//         } else if (isValidFix && Array.isArray(isValidFix)) {
+//           point = isValidFix.find(
+//             (fix) =>
+//               fix.position.latitude === Number(blankSeperated[3]) &&
+//               fix.position.longitude === Number(blankSeperated[4]),
+//           );
+//         } else if (isValidFix) {
+//           point = isValidFix;
+//         } else {
+//           point = {
+//             ident: blankSeperated[2],
+//             position: {
+//               latitude: blankSeperated[3],
+//               longitude: blankSeperated[4],
+//             },
+//           };
+//         }
+//         const validAirway = this.airways.find(
+//           (airway) => airway.ident === ident,
+//         );
+//         if (validAirway) {
+//           validAirway.intersections.push(point);
+//         } else {
+//           this.airways.push({ ident, intersections: [point] });
+//         }
+//       }
+//     });
+//   }
 
-  serviceCheck(): string {
-    return '############################\n DATABASE LOADED SUCCESSFULLY \n############################';
-  }
+//   serviceCheck(): string {
+//     return '############################\n DATABASE LOADED SUCCESSFULLY \n############################';
+//   }
 
-  checkErrorsOnAirports(): boolean {
-    console.log(this.errorsOnAirports);
-    return true;
-  }
+//   checkErrorsOnAirports(): boolean {
+//     console.log(this.errorsOnAirports);
+//     return true;
+//   }
 
-  //   OCC ACTIONS & CRUD
+//   //   OCC ACTIONS & CRUD
 
-  // GCO ACTIONS
-  // async GetAirportInformationsByICAO(icao: string) {}
-  // async GetRunwayInformationsByICAO(icao: string) {}
-  // async GetDepartureSIDs(icao: string, runway: string) {}
-  // async GetArrvivalSTARs(icao: string, runway: string) {}
-  // async GetNavAidByTitle(title: string) {}
-  // async GetIntersectionByTitle(title: string) {}
-  // async GetAirwayByTitle(title: string) {}
-  // //   TODO: FIX HERE
-  // async GetPointData(point: { type: EWayType; title: string }) {
-  //   switch (point.type) {
-  //     case EWayType.AIRWAY:
-  //       return { error: true, code: 'NM-001' };
-  //     case EWayType.INTERSECTION:
-  //       return await this.GetIntersectionByTitle(point.title);
+//   // GCO ACTIONS
+//   // async GetAirportInformationsByICAO(icao: string) {}
+//   // async GetRunwayInformationsByICAO(icao: string) {}
+//   // async GetDepartureSIDs(icao: string, runway: string) {}
+//   // async GetArrvivalSTARs(icao: string, runway: string) {}
+//   // async GetNavAidByTitle(title: string) {}
+//   // async GetIntersectionByTitle(title: string) {}
+//   // async GetAirwayByTitle(title: string) {}
+//   // //   TODO: FIX HERE
+//   // async GetPointData(point: { type: EWayType; title: string }) {
+//   //   switch (point.type) {
+//   //     case EWayType.AIRWAY:
+//   //       return { error: true, code: 'NM-001' };
+//   //     case EWayType.INTERSECTION:
+//   //       return await this.GetIntersectionByTitle(point.title);
 
-  //     case EWayType.NAVAID:
-  //       return await this.GetNavAidByTitle(point.title);
+//   //     case EWayType.NAVAID:
+//   //       return await this.GetNavAidByTitle(point.title);
 
-  //     default:
-  //       return { error: true, code: 'NM-002' };
-  //   }
-  // }
+//   //     default:
+//   //       return { error: true, code: 'NM-002' };
+//   //   }
+//   // }
 
-  // ACO ACTIONS
-}
+//   // ACO ACTIONS
+// }

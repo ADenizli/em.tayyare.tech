@@ -1,37 +1,24 @@
-import IPosition from '@modules/common/interfaces/Position';
-
-export default interface IAirport {
+export default interface Airport {
+  id: number;
+  name: string;
   icao: string;
-  iata: string;
-  name: string;
-  position: IPosition;
-  iso_country: ICountry;
-  iso_region: IRegion;
-  gates: IGate[];
-  runways: IRunway[];
+  latitude: number;
+  longitude: number;
+  elevation: number;
+  transitionAltitude: number;
+  transitionLevel: number;
+  runways: Runway[];
 }
 
-export interface IGate {
+export interface Runway {
+  id: number;
+  airportID: number;
   ident: string;
-  position: IPosition;
-}
-
-export interface IRunway {
-  ident: string;
-  position: IPosition;
-  instrument_frequency?: string;
-  math_heading: number;
-  course: string;
-  is_closed: boolean;
-}
-
-export interface ICountry {
-  iso: string;
-  name: string;
-  continent: string;
-}
-
-export interface IRegion {
-  iso: string;
-  city: string;
+  trueHeading: number;
+  length: number;
+  width: number;
+  surface?: string;
+  latitude: number;
+  longitude: number;
+  elevation: number;
 }
