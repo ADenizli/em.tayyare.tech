@@ -4,19 +4,26 @@ import {
   Property,
   ManyToOne,
   OneToOne,
+  EntityRepositoryType,
 } from '@mikro-orm/core';
-import { TerminalProceduresEntity } from './terminalProcedures.entity';
+import { TerminalProcedureEntity } from './terminalProcedure.entity';
 import { WaypointEntity } from './waypoint.entity';
 import { NavaidEntity } from './navaid.entity';
-import { TerminalLegSpdLimitEntity } from './terminalProceduresFixesSpdLimits.entity';
+import { TerminalLegSpdLimitEntity } from './terminalLegSpdLimit.entity';
+import { TerminalLegRepository } from '../repositories/terminalLeg.repo';
 
-@Entity({ tableName: 'TerminalLegs' })
+@Entity({
+  repository: () => TerminalLegRepository,
+  tableName: 'TerminalLegs',
+})
 export class TerminalLegEntity {
+  [EntityRepositoryType]?: TerminalLegRepository;
+
   @PrimaryKey()
   id: number;
 
-  @ManyToOne(() => TerminalProceduresEntity, { joinColumn: 'terminalID' })
-  terminalID: TerminalProceduresEntity;
+  @ManyToOne(() => TerminalProcedureEntity, { joinColumn: 'terminalID' })
+  terminalID: TerminalProcedureEntity;
 
   @Property()
   type: string;
@@ -60,8 +67,8 @@ export class TerminalLegEntity {
   @Property({ columnType: 'double' })
   distance: number;
 
-  @Property({ columnType: 'double' })
-  alt: number;
+  @Property({ columnType: 'text' })
+  alt: string;
 
   @Property({ columnType: 'double' })
   vnav: number;

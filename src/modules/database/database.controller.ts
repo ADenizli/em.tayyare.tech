@@ -22,7 +22,7 @@ export class DatabaseController {
 
   @Get('airports/:icao/terminal-procedures/:id')
   getTerminalProcedure(@Param('id') id: string): any {
-    return this.databaseService.getFixesOfTerminalProcedure(Number(id));
+    return this.databaseService.getLegsOfTerminalProcedure(Number(id));
   }
 
   // @Get('errorsOnAirports')

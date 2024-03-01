@@ -2,9 +2,13 @@ import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { ILSEntity } from './ils.entity';
 import { AirportEntity } from './airport.entity';
 import { RunwayEntity } from './runway.entity';
+import { TerminalProcedureRepository } from '../repositories/terminalProcedure.repo';
 
-@Entity({ tableName: 'TerminalProcedures' })
-export class TerminalProceduresEntity {
+@Entity({
+  tableName: 'TerminalProcedures',
+  repository: () => TerminalProcedureRepository,
+})
+export class TerminalProcedureEntity {
   @PrimaryKey()
   id: number;
 

@@ -1,11 +1,8 @@
 import { AirportEntity } from '../entities/airport.entity';
 import { ILSEntity } from '../entities/ils.entity';
 import { RunwayEntity } from '../entities/runway.entity';
-import { TerminalProceduresEntity } from '../entities/terminalProcedures.entity';
-import { TerminalLegSpdLimitEntity } from '../entities/terminalProceduresFixesSpdLimits.entity';
-import { WaypointEntity } from '../entities/waypoint.entity';
 import ESpeedLimitDesc from '../enums/SpeedLimitDesc';
-import { INavaid } from './Point';
+import IWaypoint, { INavaid } from './Point';
 
 export default interface ITerminalProcedure {
   id: number;
@@ -21,33 +18,33 @@ export default interface ITerminalProcedure {
 
 export interface ITerminalLeg {
   id: number;
-  terminalID: TerminalProceduresEntity;
+  terminalID: number;
   type: string;
   transition: string;
   trackCode: string;
-  wptID: WaypointEntity;
+  wptID: IWaypoint;
   wptLat: number;
   wptLon: number;
   turnDir: number;
-  navID: INavaid;
+  navID?: INavaid;
   navLat: number;
   navLon: number;
   navBear: number;
   navDist: number;
   course: number;
   distance: number;
-  alt: number;
+  alt: string;
   vnav: number;
-  centerID: WaypointEntity;
+  centerID?: IWaypoint;
   centerLat: number;
   centerLon: number;
   wptDescCode: string;
-  speedLimit: TerminalLegSpdLimitEntity;
+  speedLimit?: ITerminalLegSpdLimit;
 }
 
 export interface ITerminalLegSpdLimit {
   id: number;
   isFlyOver: boolean;
-  speedLimit: number;
-  speedLimitDescription: ESpeedLimitDesc;
+  speedLimit: number | null;
+  speedLimitDescription: ESpeedLimitDesc | null;
 }

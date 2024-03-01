@@ -18,7 +18,7 @@ export class NavaidEntity {
   freq: number;
 
   @Property()
-  channel: number;
+  channel: string;
 
   @Property()
   usage: string;

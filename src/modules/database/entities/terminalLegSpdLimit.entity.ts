@@ -1,6 +1,6 @@
 import { Entity, OneToOne, PrimaryKey, Property } from '@mikro-orm/core';
 import ESpeedLimitDesc from '../enums/SpeedLimitDesc';
-import { TerminalLegEntity } from './terminalProcedureLegs.entity';
+import { TerminalLegEntity } from './terminalLeg.entity';
 
 @Entity({ tableName: 'TerminalLegsEx' })
 export class TerminalLegSpdLimitEntity {
