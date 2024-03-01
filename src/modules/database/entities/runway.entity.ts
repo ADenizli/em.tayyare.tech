@@ -1,5 +1,5 @@
 import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
-import { SurfaceTypeEntity } from './surfaceType.entity'; // make sure the path is correct
+// import { SurfaceTypeEntity } from './surfaceType.entity'; // make sure the path is correct
 import { AirportEntity } from './airport.entity';
 
 @Entity({ tableName: 'Runways' })

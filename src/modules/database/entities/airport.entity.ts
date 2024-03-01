@@ -27,10 +27,10 @@ export class AirportEntity {
   @Property()
   elevation: number;
 
-  @Property({ nullable: true })
+  @Property({ nullable: true, fieldName: 'transitionAltitude' })
   transitionAltitude: number;
 
-  @Property({ nullable: true })
+  @Property({ nullable: true, fieldName: 'transitionLevel' })
   transitionLevel: number;
 
   @OneToMany(() => RunwayEntity, (runway) => runway.airportID)

@@ -15,6 +15,16 @@ export class DatabaseController {
     return this.databaseService.getAirport(icao);
   }
 
+  @Get('airports/:icao/terminal-procedures')
+  getTerminalProcedures(@Param('icao') icao: string): any {
+    return this.databaseService.getSIDs(icao);
+  }
+
+  @Get('airports/:icao/terminal-procedures/:id')
+  getTerminalProcedure(@Param('id') id: string): any {
+    return this.databaseService.getFixesOfTerminalProcedure(Number(id));
+  }
+
   // @Get('errorsOnAirports')
   // checkErrorsOnAirports(): boolean {
   //   return this.databaseService.checkErrorsOnAirports();

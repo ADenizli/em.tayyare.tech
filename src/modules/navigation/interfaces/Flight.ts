@@ -12,7 +12,7 @@ export default interface IFlight {
     runway: string;
     activeLandingRunway: string;
     departureType: EDepartureTypes;
-    ident?: string;
+    ident?: number;
   };
   legs: ILeg[];
 }

@@ -15,7 +15,7 @@ export class NavigationService {
       runway: '11',
       activeLandingRunway: '11',
       departureType: EDepartureTypes.SID,
-      ident: 'TEME1A',
+      ident: 14143,
     },
     route: [
       {
@@ -36,6 +36,10 @@ export class NavigationService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async generateFlightLegs() {
+    await this.generateDepartureLegs();
+  }
+
+  async generateDepartureLegs() {
     // departure base
     const origin = await this.databaseService.getAirport(this.flight.origin);
     const depRnw = origin.runways.find(
@@ -43,7 +47,7 @@ export class NavigationService {
     );
     this.flight.legs.push({
       type: ELegTypes.DP,
-      ident: `RNW${this.flight.departureConfigration.runway}`,
+      ident: `RW${this.flight.departureConfigration.runway}`,
       position: {
         latitude: depRnw.latitude,
         longitude: depRnw.longitude,
@@ -55,13 +59,20 @@ export class NavigationService {
     if (
       this.flight.departureConfigration.departureType === EDepartureTypes.SID
     ) {
-      const sid = this.databaseService.getAirportSID(
-        this.flight.origin,
+      const sidLegs = this.databaseService.getFixesOfTerminalProcedure(
         this.flight.departureConfigration.ident,
       );
+
+      sidLegs.forEach((leg) => {
+        this.flight.legs.push({
+          type: leg,
+          ident: '',
+          position: undefined,
+        });
+      });
       // check is sid able for rnwy
-      if (condition) {
-      }
+      // if (condition) {
+      // }
     }
   }
 }

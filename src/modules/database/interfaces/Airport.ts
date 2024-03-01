@@ -1,4 +1,4 @@
-export default interface Airport {
+export default interface IAirport {
   id: number;
   name: string;
   icao: string;
@@ -7,10 +7,10 @@ export default interface Airport {
   elevation: number;
   transitionAltitude: number;
   transitionLevel: number;
-  runways: Runway[];
+  runways: IRunway[];
 }
 
-export interface Runway {
+export interface IRunway {
   id: number;
   airportID: number;
   ident: string;
@@ -22,3 +22,5 @@ export interface Runway {
   longitude: number;
   elevation: number;
 }
+
+export interface IILS {}
