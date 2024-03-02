@@ -10,7 +10,6 @@ export class TerminalLegRepository extends EntityRepository<TerminalLegEntity> {
       { terminalID },
       { populate: ['terminalID', 'wptID', 'navID'] },
     );
-    console.log(legs);
     legs.forEach((leg: TerminalLegEntity) => {
       response.push({
         id: leg.id,
@@ -18,14 +17,14 @@ export class TerminalLegRepository extends EntityRepository<TerminalLegEntity> {
         type: leg.type,
         transition: leg.transition,
         trackCode: leg.trackCode,
-        wptID: {
-          id: 0,
-          ident: '',
-          collocated: false,
-          name: '',
-          latitude: 0,
-          longitude: 0,
-          navaidID: 0,
+        wptID: leg.wptID !== null && {
+          id: leg.wptID.id,
+          ident: leg.wptID.ident,
+          collocated: leg.wptID.collocated,
+          name: leg.wptID.name,
+          latitude: leg.wptID.latitude,
+          longitude: leg.wptID.longitude,
+          navaidID: leg.wptID.navaidID,
         },
         wptLat: leg.wptLat,
         wptLon: leg.wptLon,

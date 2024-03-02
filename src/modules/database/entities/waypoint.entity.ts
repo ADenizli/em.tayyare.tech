@@ -1,7 +1,8 @@
 import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { NavaidEntity } from './navaid.entity';
+import { WaypointRepository } from '../repositories/waypoint.repo';
 
-@Entity({ tableName: 'Waypoints' })
+@Entity({ tableName: 'Waypoints', repository: () => WaypointRepository })
 export class WaypointEntity {
   @PrimaryKey()
   id: number;

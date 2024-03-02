@@ -1,5 +1,6 @@
 enum ELegTypes {
   AF = 'AF', //'Constant DME Arc to Fix',
+  AI = 'AI', // Approach initial fix,
   CA = 'CA', //'Course to an altitude (position unspecified)',
   CD = 'CD', //'Course to DME distance',
   CF = 'CF', //'Course to a fix',

@@ -5,7 +5,7 @@ export default interface IWaypoint {
   name: string;
   latitude: number;
   longitude: number;
-  navaidID: number | INavaid; // Assuming this can be null based on the lack of a 'NOT NULL' constraint
+  navaidID: null | number | INavaid; // Assuming this can be null based on the lack of a 'NOT NULL' constraint
 }
 
 export interface INavaid {

@@ -32,13 +32,17 @@ export interface ILeg {
   phase: EFlightPhases;
   type: ELegTypes;
   ident: string;
+  trueHeading?: number;
+  followHeading?: number;
   position?: IPosition;
   procedure?: IProcedure;
   togo?: number;
   restrictions?: {
     maxAlt?: number;
+    atAlt?: number;
     minAlt?: number;
     maxSpd?: number;
+    atSpd?: number;
     minSpd?: number;
   };
 }

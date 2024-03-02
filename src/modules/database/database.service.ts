@@ -10,6 +10,12 @@ import ITerminalProcedure, {
 } from './interfaces/TerminalProcedure';
 import { TerminalLegRepository } from './repositories/terminalLeg.repo';
 import { TerminalProcedureRepository } from './repositories/terminalProcedure.repo';
+import { WaypointEntity } from './entities/waypoint.entity';
+import { WaypointRepository } from './repositories/waypoint.repo';
+import IWaypoint from './interfaces/Point';
+import { AirwayEntity } from './entities/airway.entity';
+import { AirwayRepository } from './repositories/airway.repo';
+import IAirway from './interfaces/Airway';
 @Injectable()
 export class DatabaseService {
   constructor(
@@ -21,6 +27,10 @@ export class DatabaseService {
     private readonly terminalProcedureRepository: TerminalProcedureRepository,
     @InjectRepository(TerminalLegEntity)
     private readonly terminalLegsRepository: TerminalLegRepository,
+    @InjectRepository(WaypointEntity)
+    private readonly waypointEntity: WaypointRepository,
+    @InjectRepository(AirwayEntity)
+    private readonly airwayEntity: AirwayRepository,
   ) {}
 
   serviceCheck(): string {
@@ -76,5 +86,17 @@ export class DatabaseService {
     terminalID: number,
   ): Promise<ITerminalLeg[]> {
     return await this.terminalLegsRepository.getTerminalLegs(terminalID);
+  }
+
+  // Waypoints Table
+  //Reading
+  async getWPTByIdent(ident: string): Promise<IWaypoint[]> {
+    return await this.waypointEntity.getWaypointByIdent(ident);
+  }
+
+  // Airways Table
+  // Reading
+  async getAirwayWaypoints(ident: string): Promise<IAirway> {
+    return await this.airwayEntity.getAirwayWithWaypoints(ident);
   }
 }

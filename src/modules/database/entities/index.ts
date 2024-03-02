@@ -1,4 +1,5 @@
 import { AirportEntity } from './airport.entity';
+import { AirwayEntity } from './airway.entity';
 import { ILSEntity } from './ils.entity';
 import { NavaidEntity } from './navaid.entity';
 import { RunwayEntity } from './runway.entity';
@@ -16,6 +17,7 @@ const DatabaseModuleEntities = [
   TerminalLegEntity,
   NavaidEntity,
   WaypointEntity,
+  AirwayEntity,
 ];
 
 export default DatabaseModuleEntities;
