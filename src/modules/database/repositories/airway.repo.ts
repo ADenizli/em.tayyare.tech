@@ -6,6 +6,7 @@ import IWaypoint from '../interfaces/Point';
 
 export class AirwayRepository extends EntityRepository<AirwayEntity> {
   // custom methods...
+  // Holding at airways for 2 days
   async getAirwayWithWaypoints(ident: string): Promise<IAirway> {
     const airway = await this.findOne(
       { ident },
