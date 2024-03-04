@@ -34,22 +34,22 @@ export class NavigationService {
         type: ERouteItemTypes.AIRWAY,
         ident: 'UW71',
       },
-      {
-        type: ERouteItemTypes.INTERSECTION,
-        ident: 'ILHAN',
-      },
-      {
-        type: ERouteItemTypes.INTERSECTION,
-        ident: 'SALGO',
-      },
-      {
-        type: ERouteItemTypes.AIRWAY,
-        ident: 'UA4',
-      },
-      {
-        type: ERouteItemTypes.INTERSECTION,
-        ident: 'ERKAL',
-      },
+      // {
+      //   type: ERouteItemTypes.INTERSECTION,
+      //   ident: 'ILHAN',
+      // },
+      // {
+      //   type: ERouteItemTypes.INTERSECTION,
+      //   ident: 'SALGO',
+      // },
+      // {
+      //   type: ERouteItemTypes.AIRWAY,
+      //   ident: 'UA4',
+      // },
+      // {
+      //   type: ERouteItemTypes.INTERSECTION,
+      //   ident: 'ERKAL',
+      // },
     ],
     legs: [],
   };
@@ -207,18 +207,16 @@ export class NavigationService {
     );
     let prevLegIndex = this.flight.legs.length - 1;
 
-    this.flight.route.forEach(async (routeItem, index) => {
+    for (const routeItem of this.flight.route) {
+      const index = this.flight.route.indexOf(routeItem);
       const prevEnrouteItem = index !== 0 && this.flight.route[index - 1];
       const nextEnrouteItem =
         index !== this.flight.route.length - 1 && this.flight.route[index + 1];
+      console.log(routeItem);
       if (routeItem.type === ERouteItemTypes.INTERSECTION) {
         let getIntersectionInformation: IWaypoint | IWaypoint[] =
           await this.databaseService.getWPTByIdent(routeItem.ident);
         getIntersectionInformation = getIntersectionInformation[0];
-
-        // if (getIntersectionInformation.length === 1) {
-        //   getIntersectionInformation = getIntersectionInformation[0];
-        // }
 
         if (index === 0) {
           if (initialFix.ident !== routeItem.ident) {
@@ -236,26 +234,6 @@ export class NavigationService {
             prevLegIndex++;
           }
         } else if (index === this.flight.route.length - 1) {
-          const intersectionPosition: IPosition = {
-            latitude: getIntersectionInformation.latitude,
-            longitude: getIntersectionInformation.longitude,
-          };
-
-          const trueHeading = this.calculateTrueHeading(
-            this.flight.legs[prevLegIndex].position,
-            intersectionPosition,
-          );
-
-          const magneticHeading = this.calculateMagneticHeading(
-            this.flight.legs[prevLegIndex].position,
-            trueHeading,
-          );
-
-          const togo = this.getDistance(
-            this.flight.legs[prevLegIndex].position,
-            intersectionPosition,
-          );
-
           this.flight.legs.push({
             phase: EFlightPhases.ENROUTE,
             type: ELegTypes.AI,
@@ -265,55 +243,64 @@ export class NavigationService {
               longitude: getIntersectionInformation.longitude,
             },
           });
-
-          this.flight.legs[prevLegIndex].togo = togo;
-          this.flight.legs[prevLegIndex].trueHeading = trueHeading;
-          this.flight.legs[prevLegIndex].followHeading = magneticHeading;
-
-          prevLegIndex++;
+          this.setLegHeadingAndDistanceOnEnroute(
+            prevLegIndex,
+            getIntersectionInformation,
+          );
         } else {
-          const intersectionPosition: IPosition = {
-            latitude: getIntersectionInformation.latitude,
-            longitude: getIntersectionInformation.longitude,
-          };
-
-          const trueHeading = this.calculateTrueHeading(
-            this.flight.legs[prevLegIndex].position,
-            intersectionPosition,
-          );
-
-          const magneticHeading = this.calculateMagneticHeading(
-            this.flight.legs[prevLegIndex].position,
-            trueHeading,
-          );
-
-          const togo = this.getDistance(
-            this.flight.legs[prevLegIndex].position,
-            intersectionPosition,
-          );
-
           this.flight.legs.push({
             phase: EFlightPhases.ENROUTE,
             type: ELegTypes.CF,
             ident: getIntersectionInformation.ident,
-            position: intersectionPosition,
+            position: {
+              latitude: getIntersectionInformation.latitude,
+              longitude: getIntersectionInformation.longitude,
+            },
           });
 
-          this.flight.legs[prevLegIndex].togo = togo;
-          this.flight.legs[prevLegIndex].trueHeading = trueHeading;
-          this.flight.legs[prevLegIndex].followHeading = magneticHeading;
-
-          prevLegIndex++;
+          this.setLegHeadingAndDistanceOnEnroute(
+            prevLegIndex,
+            getIntersectionInformation,
+          );
         }
       } else if (routeItem.type === ERouteItemTypes.AIRWAY) {
-        const airwayWaypoints = await this.databaseService.getAirwayWaypoints(
+        const airway = await this.databaseService.getAirwayWaypoints(
           routeItem.ident,
         );
-        console.log(airwayWaypoints);
+
+        const firstLegIndex = airway.legs.indexOf(
+          airway.legs.find((leg) => leg.ident === prevEnrouteItem.ident),
+        );
+
+        const lastLegIndex = airway.legs.indexOf(
+          airway.legs.find((leg) => leg.ident === nextEnrouteItem.ident),
+        );
+
+        let requiredLegs: IWaypoint[];
+
+        if (firstLegIndex > lastLegIndex) {
+          requiredLegs = airway.legs
+            .slice(lastLegIndex + 1, firstLegIndex)
+            .reverse();
+        } else {
+          requiredLegs = airway.legs.slice(firstLegIndex + 1, lastLegIndex);
+        }
+
+        for (const leg of requiredLegs) {
+          this.flight.legs.push({
+            phase: EFlightPhases.ENROUTE,
+            type: ELegTypes.CF,
+            ident: leg.ident,
+            position: {
+              latitude: leg.latitude,
+              longitude: leg.longitude,
+            },
+          });
+        }
       } else {
         return 'error';
       }
-    });
+    }
   }
 
   async getFlightLegs() {
@@ -379,5 +366,33 @@ export class NavigationService {
     // Adjust the true heading with the magnetic declination to get the magnetic heading
     const magneticHeading = (heading - declination + 360) % 360;
     return Math.round(magneticHeading);
+  }
+
+  setLegHeadingAndDistanceOnEnroute(prevLegIndex, getIntersectionInformation) {
+    const intersectionPosition: IPosition = {
+      latitude: getIntersectionInformation.latitude,
+      longitude: getIntersectionInformation.longitude,
+    };
+
+    const trueHeading = this.calculateTrueHeading(
+      this.flight.legs[prevLegIndex].position,
+      intersectionPosition,
+    );
+
+    const magneticHeading = this.calculateMagneticHeading(
+      this.flight.legs[prevLegIndex].position,
+      trueHeading,
+    );
+
+    const togo = this.getDistance(
+      this.flight.legs[prevLegIndex].position,
+      intersectionPosition,
+    );
+
+    this.flight.legs[prevLegIndex].togo = togo;
+    this.flight.legs[prevLegIndex].trueHeading = trueHeading;
+    this.flight.legs[prevLegIndex].followHeading = magneticHeading;
+
+    prevLegIndex++;
   }
 }
