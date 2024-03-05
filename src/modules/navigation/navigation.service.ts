@@ -38,19 +38,10 @@ export class NavigationService {
         type: ERouteItemTypes.INTERSECTION,
         ident: 'ILHAN',
       },
-      // {
-      //   type: ERouteItemTypes.INTERSECTION,
-      //   ident: 'SALGO',
-      // },
-      // {
-      //   type: ERouteItemTypes.AIRWAY,
-      //   ident: 'UA4',
-      // },
-      // {
-      //   type: ERouteItemTypes.INTERSECTION,
-      //   ident: 'ERKAL',
-      // },
     ],
+    approachConfigration: {
+      
+    }
     legs: [],
   };
   constructor(private readonly databaseService: DatabaseService) {}

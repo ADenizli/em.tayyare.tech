@@ -6,6 +6,7 @@ import ITerminalProcedure, {
   ITerminalLeg,
 } from '@modules/database/interfaces/TerminalProcedure';
 import EFlightPhases from '../enum/FlightPhases';
+import EApproachTypes from '../enum/ApproachTypes';
 
 export default interface IFlight {
   callsign: string;
@@ -19,6 +20,14 @@ export default interface IFlight {
     ident?: number;
     sidLegs: ITerminalLeg[];
     sidInfo: ITerminalProcedure;
+  };
+  approachConfigration: {
+    runway: string;
+    approachID: number;
+    approachType: EApproachTypes;
+    ident?: string;
+    starLegs: ITerminalLeg[];
+    starInfo: ITerminalProcedure;
   };
   legs: ILeg[];
 }
