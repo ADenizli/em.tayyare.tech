@@ -34,10 +34,10 @@ export class NavigationService {
         type: ERouteItemTypes.AIRWAY,
         ident: 'UW71',
       },
-      // {
-      //   type: ERouteItemTypes.INTERSECTION,
-      //   ident: 'ILHAN',
-      // },
+      {
+        type: ERouteItemTypes.INTERSECTION,
+        ident: 'ILHAN',
+      },
       // {
       //   type: ERouteItemTypes.INTERSECTION,
       //   ident: 'SALGO',
@@ -58,7 +58,6 @@ export class NavigationService {
   async generateFlightLegs() {
     await this.generateDepartureLegs();
     await this.generateEnrouteLegs();
-    console.log(this.flight.legs);
   }
 
   async generateDepartureLegs() {
@@ -247,6 +246,7 @@ export class NavigationService {
             prevLegIndex,
             getIntersectionInformation,
           );
+          prevLegIndex++;
         } else {
           this.flight.legs.push({
             phase: EFlightPhases.ENROUTE,
@@ -262,6 +262,7 @@ export class NavigationService {
             prevLegIndex,
             getIntersectionInformation,
           );
+          prevLegIndex++;
         }
       } else if (routeItem.type === ERouteItemTypes.AIRWAY) {
         const airway = await this.databaseService.getAirwayWaypoints(
@@ -296,6 +297,8 @@ export class NavigationService {
               longitude: leg.longitude,
             },
           });
+          this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, leg);
+          prevLegIndex++;
         }
       } else {
         return 'error';
@@ -392,7 +395,5 @@ export class NavigationService {
     this.flight.legs[prevLegIndex].togo = togo;
     this.flight.legs[prevLegIndex].trueHeading = trueHeading;
     this.flight.legs[prevLegIndex].followHeading = magneticHeading;
-
-    prevLegIndex++;
   }
 }
