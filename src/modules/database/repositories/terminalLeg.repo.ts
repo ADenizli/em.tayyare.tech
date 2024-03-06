@@ -8,9 +8,10 @@ export class TerminalLegRepository extends EntityRepository<TerminalLegEntity> {
     const response: ITerminalLeg[] = [];
     const legs = await this.find(
       { terminalID },
-      { populate: ['terminalID', 'wptID', 'navID'] },
+      { populate: ['terminalID', 'wptID', 'navID', 'speedLimit'] },
     );
     legs.forEach((leg: TerminalLegEntity) => {
+      console.log(leg.speedLimit);
       response.push({
         id: leg.id,
         terminalID: leg.terminalID.id,

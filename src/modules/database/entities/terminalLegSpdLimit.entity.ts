@@ -4,6 +4,9 @@ import { TerminalLegEntity } from './terminalLeg.entity';
 
 @Entity({ tableName: 'TerminalLegsEx' })
 export class TerminalLegSpdLimitEntity {
+  @OneToOne(() => TerminalLegEntity, (terminalLeg) => terminalLeg.speedLimit, {
+    primary: true,
+  })
   @PrimaryKey()
   id: number;
 

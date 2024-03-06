@@ -37,7 +37,7 @@ export class NavigationService {
       },
       {
         type: ERouteItemTypes.INTERSECTION,
-        ident: 'ILHAN',
+        ident: 'BUK',
       },
       {
         type: ERouteItemTypes.AIRWAY,
@@ -326,6 +326,9 @@ export class NavigationService {
       const starInfo = await this.databaseService.getTerminalProcedureByID(
         this.flight.approachConfigration.approachID,
       );
+
+      this.flight.approachConfigration.starInfo = starInfo;
+
       const starLegs = await this.databaseService.getLegsOfTerminalProcedure(
         this.flight.approachConfigration.approachID,
       );
@@ -336,11 +339,53 @@ export class NavigationService {
           leg.transition === `RW${this.flight.approachConfigration.runway}`,
       );
 
+      let prevLegIndex = this.flight.legs.length - 1;
       for (const leg of runwayFilteredStarLegs) {
-        const element = array[index];
-      }
+        const position = {
+          latitude: leg.wptLat,
+          longitude: leg.wptLon,
+        };
+        console.log(leg.speedLimit);
 
-      console.log(runwayFilteredStarLegs);
+        const minAltLimit = leg.alt
+          ? this.getAltitudeRestriction(leg.alt, 'A')
+          : undefined;
+        const maxAltLimit = leg.alt
+          ? this.getAltitudeRestriction(leg.alt, 'B')
+          : undefined;
+        const atAltLimit =
+          !minAltLimit && !maxAltLimit && leg.alt !== 'MAP' && leg.alt !== null
+            ? Number(leg.alt)
+            : undefined;
+
+        this.flight.legs.push({
+          phase: EFlightPhases.APP_PROC,
+          type: leg.type as ELegTypes,
+          ident: leg.wptID.ident,
+          position,
+          restrictions: {
+            atAlt: atAltLimit,
+            minAlt: minAltLimit,
+            maxAlt: maxAltLimit,
+            maxSpd:
+              leg.speedLimit.speedLimitDescription === 'A'
+                ? leg.speedLimit.speedLimit
+                : undefined,
+            atSpd:
+              leg.speedLimit.speedLimitDescription === null
+                ? leg.speedLimit.speedLimit
+                : undefined,
+            minSpd:
+              leg.speedLimit.speedLimitDescription === 'B'
+                ? leg.speedLimit.speedLimit
+                : undefined,
+          },
+        });
+
+        this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, position);
+
+        prevLegIndex++;
+      }
     }
   }
 

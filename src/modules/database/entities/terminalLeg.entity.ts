@@ -88,7 +88,6 @@ export class TerminalLegEntity {
   @OneToOne(
     () => TerminalLegSpdLimitEntity,
     (speedLimit) => speedLimit.terminalLeg,
-    { owner: true, joinColumn: 'speedLimitId' },
   )
   speedLimit: TerminalLegSpdLimitEntity;
 }
