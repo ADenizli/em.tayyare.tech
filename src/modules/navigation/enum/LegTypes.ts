@@ -20,6 +20,7 @@ enum ELegTypes {
   RF = 'RF', //'Constant radius to a fix',
   TF = 'TF', //'Track between two fixes (great circle)',
   VA = 'VA', //'Heading to an altitude (position unspecified)',
+  VC = 'VC',
   VD = 'VD', //'Heading to a DME Distance (position unspecified)',
   VI = 'VI', //'Heading to a next leg (position unspecified)',
   VM = 'VM', //'Heading to a manual termination',

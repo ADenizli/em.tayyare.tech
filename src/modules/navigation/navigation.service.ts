@@ -10,13 +10,14 @@ import IPosition from '@modules/common/interfaces/Position';
 import magvar from 'magvar';
 import { ROUTE_DISCONTUNITY } from './navigation.constants';
 import IWaypoint from '@modules/database/interfaces/Point';
+import EApproachTypes from './enum/ApproachTypes';
 
 @Injectable()
 export class NavigationService {
   flight: IFlight = {
     callsign: 'TYR183',
     origin: 'LTCG',
-    destination: 'LTAC',
+    destination: 'LTFM',
     departureConfigration: {
       runway: '11',
       activeLandingRunway: '11',
@@ -38,10 +39,24 @@ export class NavigationService {
         type: ERouteItemTypes.INTERSECTION,
         ident: 'ILHAN',
       },
+      {
+        type: ERouteItemTypes.AIRWAY,
+        ident: 'UA4',
+      },
+      {
+        type: ERouteItemTypes.INTERSECTION,
+        ident: 'ERSEN',
+      },
     ],
     approachConfigration: {
-      
-    }
+      runway: '34L',
+      approachID: 45612,
+      approachType: EApproachTypes.STAR,
+      starLegs: undefined,
+      starInfo: undefined,
+      landingProcedure: 82098,
+    },
+
     legs: [],
   };
   constructor(private readonly databaseService: DatabaseService) {}
@@ -49,6 +64,7 @@ export class NavigationService {
   async generateFlightLegs() {
     await this.generateDepartureLegs();
     await this.generateEnrouteLegs();
+    await this.generateApproachLegs();
   }
 
   async generateDepartureLegs() {
@@ -74,7 +90,7 @@ export class NavigationService {
     if (
       this.flight.departureConfigration.departureType === EDepartureTypes.SID
     ) {
-      const sidInfo = await this.databaseService.getSIDByID(
+      const sidInfo = await this.databaseService.getTerminalProcedureByID(
         this.flight.departureConfigration.ident,
       );
       const sidLegs = await this.databaseService.getLegsOfTerminalProcedure(
@@ -294,6 +310,37 @@ export class NavigationService {
       } else {
         return 'error';
       }
+    }
+  }
+
+  async generateApproachLegs() {
+    if (
+      this.flight.approachConfigration.approachType === EApproachTypes.VECTORS
+    ) {
+      this.flight.legs.push({
+        phase: EFlightPhases.APP_PROC,
+        type: ELegTypes.VC,
+        ident: '(VECTORS)',
+      });
+    } else {
+      const starInfo = await this.databaseService.getTerminalProcedureByID(
+        this.flight.approachConfigration.approachID,
+      );
+      const starLegs = await this.databaseService.getLegsOfTerminalProcedure(
+        this.flight.approachConfigration.approachID,
+      );
+
+      const runwayFilteredStarLegs = starLegs.filter(
+        (leg) =>
+          leg.transition === 'ALL' ||
+          leg.transition === `RW${this.flight.approachConfigration.runway}`,
+      );
+
+      for (const leg of runwayFilteredStarLegs) {
+        const element = array[index];
+      }
+
+      console.log(runwayFilteredStarLegs);
     }
   }
 

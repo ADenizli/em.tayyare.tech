@@ -28,6 +28,8 @@ export default interface IFlight {
     ident?: string;
     starLegs: ITerminalLeg[];
     starInfo: ITerminalProcedure;
+    transition?: string;
+    landingProcedure: number;
   };
   legs: ILeg[];
 }

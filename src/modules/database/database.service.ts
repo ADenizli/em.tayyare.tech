@@ -54,10 +54,6 @@ export class DatabaseService {
     );
   }
 
-  async getSIDByID(id: number): Promise<ITerminalProcedure> {
-    return await this.terminalProcedureRepository.getTerminalProcedureByID(id);
-  }
-
   async getSTARs(icao: string): Promise<ITerminalProcedure[]> {
     return await this.terminalProcedureRepository.find(
       { icao, proc: '1' },
@@ -72,8 +68,8 @@ export class DatabaseService {
     );
   }
 
-  async getTerminalProcedureByID(id: number): Promise<ITerminalProcedure[]> {
-    return await this.terminalProcedureRepository.find(
+  async getTerminalProcedureByID(id: number): Promise<ITerminalProcedure> {
+    return await this.terminalProcedureRepository.findOne(
       { id },
       { populate: ['ilsID', 'airportID'] },
     );
