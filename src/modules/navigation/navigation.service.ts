@@ -55,6 +55,7 @@ export class NavigationService {
       starLegs: undefined,
       starInfo: undefined,
       landingProcedure: 82098,
+      transition: 'SADIK',
     },
 
     legs: [],
@@ -345,7 +346,6 @@ export class NavigationService {
           latitude: leg.wptLat,
           longitude: leg.wptLon,
         };
-        console.log(leg.speedLimit);
 
         const minAltLimit = leg.alt
           ? this.getAltitudeRestriction(leg.alt, 'A')
@@ -358,35 +358,188 @@ export class NavigationService {
             ? Number(leg.alt)
             : undefined;
 
-        this.flight.legs.push({
-          phase: EFlightPhases.APP_PROC,
-          type: leg.type as ELegTypes,
-          ident: leg.wptID.ident,
-          position,
-          restrictions: {
-            atAlt: atAltLimit,
-            minAlt: minAltLimit,
-            maxAlt: maxAltLimit,
-            maxSpd:
-              leg.speedLimit.speedLimitDescription === 'A'
-                ? leg.speedLimit.speedLimit
-                : undefined,
-            atSpd:
-              leg.speedLimit.speedLimitDescription === null
-                ? leg.speedLimit.speedLimit
-                : undefined,
-            minSpd:
-              leg.speedLimit.speedLimitDescription === 'B'
-                ? leg.speedLimit.speedLimit
-                : undefined,
-          },
-        });
+        if (leg.type === '6') {
+          const previusLeg = this.flight.legs[prevLegIndex];
+          if (previusLeg.ident !== leg.wptID.ident) {
+            this.flight.legs.push({
+              phase: EFlightPhases.APP_PROC,
+              type: leg.type as ELegTypes,
+              ident: leg.wptID.ident,
+              position,
+              restrictions: {
+                atAlt: atAltLimit,
+                minAlt: minAltLimit,
+                maxAlt: maxAltLimit,
+                maxSpd:
+                  leg.speedLimit.speedLimitDescription === 'A'
+                    ? leg.speedLimit.speedLimit
+                    : undefined,
+                atSpd:
+                  leg.speedLimit.speedLimitDescription === null
+                    ? leg.speedLimit.speedLimit
+                    : undefined,
+                minSpd:
+                  leg.speedLimit.speedLimitDescription === 'B'
+                    ? leg.speedLimit.speedLimit
+                    : undefined,
+              },
+              transition: true,
+            });
 
-        this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, position);
+            this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, position);
 
-        prevLegIndex++;
+            prevLegIndex++;
+          }
+        } else {
+          this.flight.legs.push({
+            phase: EFlightPhases.APP_PROC,
+            type: leg.type as ELegTypes,
+            ident: leg.wptID.ident,
+            position,
+            restrictions: {
+              atAlt: atAltLimit,
+              minAlt: minAltLimit,
+              maxAlt: maxAltLimit,
+              maxSpd:
+                leg.speedLimit.speedLimitDescription === 'A'
+                  ? leg.speedLimit.speedLimit
+                  : undefined,
+              atSpd:
+                leg.speedLimit.speedLimitDescription === null
+                  ? leg.speedLimit.speedLimit
+                  : undefined,
+              minSpd:
+                leg.speedLimit.speedLimitDescription === 'B'
+                  ? leg.speedLimit.speedLimit
+                  : undefined,
+            },
+          });
+
+          this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, position);
+
+          prevLegIndex++;
+        }
       }
     }
+  }
+
+  async generateLandingLegs() {
+    const landingProcedure =
+      await this.databaseService.getTerminalProcedureByID(
+        this.flight.approachConfigration.landingProcedure,
+      );
+
+    const landingProcedureLegs =
+      await this.databaseService.getLegsOfTerminalProcedure(
+        this.flight.approachConfigration.landingProcedure,
+      );
+
+    const transitionProcLegs = landingProcedureLegs.filter(
+      (proc) =>
+        proc.type === 'A' &&
+        proc.transition === this.flight.approachConfigration.transition,
+    );
+    const ilsProcLegs = landingProcedureLegs.filter(
+      (proc) => proc.type === 'I',
+    );
+
+    let prevLegIndex = this.flight.legs.length - 1;
+    transitionProcLegs.forEach((leg) => {
+
+      if () {
+        
+      }
+      const position = {
+        latitude: leg.wptLat,
+        longitude: leg.wptLon,
+      };
+
+      const minAltLimit = leg.alt
+        ? this.getAltitudeRestriction(leg.alt, 'A')
+        : undefined;
+      const maxAltLimit = leg.alt
+        ? this.getAltitudeRestriction(leg.alt, 'B')
+        : undefined;
+      const atAltLimit =
+        !minAltLimit && !maxAltLimit && leg.alt !== 'MAP' && leg.alt !== null
+          ? Number(leg.alt)
+          : undefined;
+
+      this.flight.legs.push({
+        phase: EFlightPhases.TRS_PROC,
+        type: leg.type as ELegTypes,
+        ident: leg.wptID.ident,
+        position,
+        restrictions: {
+          atAlt: atAltLimit,
+          minAlt: minAltLimit,
+          maxAlt: maxAltLimit,
+          maxSpd:
+            leg.speedLimit.speedLimitDescription === 'A'
+              ? leg.speedLimit.speedLimit
+              : undefined,
+          atSpd:
+            leg.speedLimit.speedLimitDescription === null
+              ? leg.speedLimit.speedLimit
+              : undefined,
+          minSpd:
+            leg.speedLimit.speedLimitDescription === 'B'
+              ? leg.speedLimit.speedLimit
+              : undefined,
+        },
+      });
+
+      this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, position);
+
+      prevLegIndex++;
+    });
+
+    ilsProcLegs.forEach((leg) => {
+      const position = {
+        latitude: leg.wptLat,
+        longitude: leg.wptLon,
+      };
+
+      const minAltLimit = leg.alt
+        ? this.getAltitudeRestriction(leg.alt, 'A')
+        : undefined;
+      const maxAltLimit = leg.alt
+        ? this.getAltitudeRestriction(leg.alt, 'B')
+        : undefined;
+      const atAltLimit =
+        !minAltLimit && !maxAltLimit && leg.alt !== 'MAP' && leg.alt !== null
+          ? Number(leg.alt)
+          : undefined;
+
+      this.flight.legs.push({
+        phase: EFlightPhases.LND_PROC,
+        type: leg.type as ELegTypes,
+        ident: leg.wptID.ident,
+        position,
+        restrictions: {
+          atAlt: atAltLimit,
+          minAlt: minAltLimit,
+          maxAlt: maxAltLimit,
+          maxSpd:
+            leg.speedLimit.speedLimitDescription === 'A'
+              ? leg.speedLimit.speedLimit
+              : undefined,
+          atSpd:
+            leg.speedLimit.speedLimitDescription === null
+              ? leg.speedLimit.speedLimit
+              : undefined,
+          minSpd:
+            leg.speedLimit.speedLimitDescription === 'B'
+              ? leg.speedLimit.speedLimit
+              : undefined,
+        },
+      });
+
+      this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, position);
+
+      prevLegIndex++;
+    });
+    console.log(landingProcedure);
   }
 
   async getFlightLegs() {

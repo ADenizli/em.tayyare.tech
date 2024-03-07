@@ -3,7 +3,6 @@ import {
   PrimaryKey,
   Property,
   ManyToOne,
-  OneToOne,
   EntityRepositoryType,
 } from '@mikro-orm/core';
 import { TerminalProcedureEntity } from './terminalProcedure.entity';
@@ -85,9 +84,6 @@ export class TerminalLegEntity {
   @Property()
   wptDescCode: string;
 
-  @OneToOne(
-    () => TerminalLegSpdLimitEntity,
-    (speedLimit) => speedLimit.terminalLeg,
-  )
+  @Property()
   speedLimit: TerminalLegSpdLimitEntity;
 }

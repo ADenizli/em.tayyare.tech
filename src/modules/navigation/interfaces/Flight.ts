@@ -56,6 +56,7 @@ export interface ILeg {
     atSpd?: number;
     minSpd?: number;
   };
+  transition?: boolean;
 }
 
 export interface IProcedure {
