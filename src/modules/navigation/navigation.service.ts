@@ -66,6 +66,8 @@ export class NavigationService {
     await this.generateDepartureLegs();
     await this.generateEnrouteLegs();
     await this.generateApproachLegs();
+// await this.generateLandingLegs();
+    // await this.generateGoAroundLegs();
   }
 
   async generateDepartureLegs() {
