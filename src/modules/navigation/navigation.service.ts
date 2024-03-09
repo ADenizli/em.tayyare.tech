@@ -12,6 +12,8 @@ import { ROUTE_DISCONTUNITY } from './navigation.constants';
 import IWaypoint from '@modules/database/interfaces/Point';
 import EApproachTypes from './enum/ApproachTypes';
 
+// Checking avionic system structure 
+
 @Injectable()
 export class NavigationService {
   flight: IFlight = {
