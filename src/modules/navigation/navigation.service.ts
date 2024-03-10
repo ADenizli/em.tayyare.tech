@@ -11,9 +11,6 @@ import magvar from 'magvar';
 import { ROUTE_DISCONTUNITY } from './navigation.constants';
 import IWaypoint from '@modules/database/interfaces/Point';
 import EApproachTypes from './enum/ApproachTypes';
-
-// Checking avionic system structure 
-
 @Injectable()
 export class NavigationService {
   flight: IFlight = {
@@ -68,7 +65,7 @@ export class NavigationService {
     await this.generateDepartureLegs();
     await this.generateEnrouteLegs();
     await this.generateApproachLegs();
-// await this.generateLandingLegs();
+    await this.generateLandingLegs();
     // await this.generateGoAroundLegs();
   }
 
@@ -438,7 +435,7 @@ export class NavigationService {
         this.flight.approachConfigration.landingProcedure,
       );
 
-    const transitionProcLegs = landingProcedureLegs.filter(
+    let transitionProcLegs = landingProcedureLegs.filter(
       (proc) =>
         proc.type === 'A' &&
         proc.transition === this.flight.approachConfigration.transition,
@@ -448,11 +445,16 @@ export class NavigationService {
     );
 
     let prevLegIndex = this.flight.legs.length - 1;
-    transitionProcLegs.forEach((leg) => {
+    const prevLeg = this.flight.legs[prevLegIndex];
+    const isProcContainsLeg = transitionProcLegs.indexOf(
+      transitionProcLegs.find((leg) => leg.wptID.ident === prevLeg.ident),
+    );
 
-      if () {
-        
-      }
+    if (isProcContainsLeg !== -1) {
+      transitionProcLegs = transitionProcLegs.slice(isProcContainsLeg + 1);
+    }
+
+    transitionProcLegs.forEach((leg) => {
       const position = {
         latitude: leg.wptLat,
         longitude: leg.wptLon,
