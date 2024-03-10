@@ -425,6 +425,10 @@ export class NavigationService {
   }
 
   async generateLandingLegs() {
+    const destination = await this.databaseService.getAirport(
+      this.flight.destination,
+    );
+
     const landingProcedure =
       await this.databaseService.getTerminalProcedureByID(
         this.flight.approachConfigration.landingProcedure,
@@ -473,7 +477,7 @@ export class NavigationService {
 
       this.flight.legs.push({
         phase: EFlightPhases.TRS_PROC,
-        type: leg.type as ELegTypes,
+        type: leg.trackCode as ELegTypes,
         ident: leg.wptID.ident,
         position,
         restrictions: {
@@ -517,9 +521,32 @@ export class NavigationService {
           ? Number(leg.alt)
           : undefined;
 
+      console.log(this.flight.legs[prevLegIndex].dmeDistance);
+      if (leg.navDist > this.flight.legs[prevLegIndex].dmeDistance) {
+        const arrRnw = destination.runways.find(
+          (runway) => runway.ident === this.flight.approachConfigration.runway,
+        );
+
+        this.flight.legs.push({
+          phase: EFlightPhases.DEP_RWY,
+          type: ELegTypes.DP,
+          ident: `RW${this.flight.approachConfigration.runway}`,
+          position: {
+            latitude: arrRnw.latitude,
+            longitude: arrRnw.longitude,
+            elevation: arrRnw.elevation,
+          },
+        });
+        this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, {
+          latitude: arrRnw.latitude,
+          longitude: arrRnw.longitude,
+        });
+        prevLegIndex++;
+      }
+
       this.flight.legs.push({
         phase: EFlightPhases.LND_PROC,
-        type: leg.type as ELegTypes,
+        type: leg.trackCode as ELegTypes,
         ident: leg.wptID.ident,
         position,
         restrictions: {
@@ -539,6 +566,7 @@ export class NavigationService {
               ? leg.speedLimit.speedLimit
               : undefined,
         },
+        dmeDistance: leg.navDist,
       });
 
       this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, position);

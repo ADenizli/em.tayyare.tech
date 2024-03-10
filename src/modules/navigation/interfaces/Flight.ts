@@ -57,6 +57,7 @@ export interface ILeg {
     minSpd?: number;
   };
   transition?: boolean;
+  dmeDistance?: number;
 }
 
 export interface IProcedure {
