@@ -26,6 +26,7 @@ enum ELegTypes {
   VM = 'VM', //'Heading to a manual termination',
   VR = 'VR', //'Heading to a radial termination',
   DP = 'DP', // Departure Runway
+  AR = 'AR', // Arrvival Runway
 }
 
 export default ELegTypes;

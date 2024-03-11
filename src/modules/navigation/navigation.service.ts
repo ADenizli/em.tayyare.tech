@@ -521,15 +521,14 @@ export class NavigationService {
           ? Number(leg.alt)
           : undefined;
 
-      console.log(this.flight.legs[prevLegIndex].dmeDistance);
       if (leg.navDist > this.flight.legs[prevLegIndex].dmeDistance) {
         const arrRnw = destination.runways.find(
           (runway) => runway.ident === this.flight.approachConfigration.runway,
         );
 
         this.flight.legs.push({
-          phase: EFlightPhases.DEP_RWY,
-          type: ELegTypes.DP,
+          phase: EFlightPhases.ARR_RWY,
+          type: ELegTypes.AR,
           ident: `RW${this.flight.approachConfigration.runway}`,
           position: {
             latitude: arrRnw.latitude,
