@@ -25,7 +25,7 @@ enum ELegTypes {
   VI = 'VI', //'Heading to a next leg (position unspecified)',
   VM = 'VM', //'Heading to a manual termination',
   VR = 'VR', //'Heading to a radial termination',
-  DP = 'DP', // Departure Runway
+  DR = 'DR', // Departure Runway
   AR = 'AR', // Arrvival Runway
 }
 

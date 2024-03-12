@@ -6,8 +6,9 @@ import {
   Property,
 } from '@mikro-orm/core';
 import { RunwayEntity } from './runway.entity';
+import { AirportRepository } from '../repositories/airport.repo';
 
-@Entity({ tableName: 'Airports' })
+@Entity({ tableName: 'Airports', repository: () => AirportRepository })
 export class AirportEntity {
   @PrimaryKey()
   id: number;

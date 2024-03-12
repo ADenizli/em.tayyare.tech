@@ -1,5 +1,6 @@
-import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, OneToOne } from '@mikro-orm/core';
 import { RunwayEntity } from './runway.entity';
+import { NavaidEntity } from './navaid.entity';
 
 // Due to the camelcase writing problems in SQLite3
 // We mentioned fieldName in columns which have two words
@@ -9,7 +10,10 @@ export class ILSEntity {
   @PrimaryKey()
   id: number;
 
-  @ManyToOne(() => RunwayEntity, { joinColumn: 'rwyID' })
+  @OneToOne(() => RunwayEntity, (runway) => runway.ils, {
+    owner: true,
+    joinColumn: 'rwyID',
+  })
   rwyID: RunwayEntity;
 
   @Property()
@@ -41,4 +45,10 @@ export class ILSEntity {
 
   @Property()
   elevation: number;
+
+  // @OneToOne(() => NavaidEntity, (navaid) => navaid.ident, {
+  //   owner: true,
+  //   joinColumn: 'navaid',
+  // })
+  // navaid: NavaidEntity;
 }

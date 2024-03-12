@@ -1,6 +1,13 @@
-import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
+import {
+  Entity,
+  PrimaryKey,
+  Property,
+  ManyToOne,
+  OneToOne,
+} from '@mikro-orm/core';
 // import { SurfaceTypeEntity } from './surfaceType.entity'; // make sure the path is correct
 import { AirportEntity } from './airport.entity';
+import { ILSEntity } from './ils.entity';
 
 @Entity({ tableName: 'Runways' })
 export class RunwayEntity {
@@ -34,4 +41,7 @@ export class RunwayEntity {
 
   @Property()
   elevation: number;
+
+  @OneToOne(() => ILSEntity, (ils) => ils.rwyID)
+  ils: ILSEntity;
 }

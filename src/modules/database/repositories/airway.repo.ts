@@ -8,9 +8,9 @@ import { WaypointEntity } from '../entities/waypoint.entity';
 export class AirwayRepository extends EntityRepository<AirwayEntity> {
   // custom methods...
   // Holding at airways for 2 days
-  async getAirwayWithWaypoints(ident: string): Promise<IAirway> {
+  async getAirwayWithWaypoints(id: number): Promise<IAirway> {
     const airway = await this.findOne(
-      { ident },
+      { id },
       { populate: ['legs', 'legs.from', 'legs.to'] },
     );
     const airwayRawLegs = airway.legs.getItems();

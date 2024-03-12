@@ -1,585 +1,279 @@
+import { ExampleFlight } from '@modules/common/test/Flight.ex';
+import IFlight, {
+  ICompassDirections,
+  ILeg,
+  ILegAltitudeRestrictions,
+  ILegSpeedRestrictions,
+} from './interfaces/Flight';
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '@modules/database/database.service';
-import IFlight from './interfaces/Flight';
-import EDepartureTypes from './enum/DepartureTypes';
-import ERouteItemTypes from './enum/RouteItemTypes';
-import ELegTypes from './enum/LegTypes';
-import { ITerminalLeg } from '@modules/database/interfaces/TerminalProcedure';
-import EFlightPhases from './enum/FlightPhases';
 import IPosition from '@modules/common/interfaces/Position';
 import magvar from 'magvar';
-import { ROUTE_DISCONTUNITY } from './navigation.constants';
+import { IRunway } from '@modules/database/interfaces/Airport';
+import ELegTypes from './enum/LegTypes';
+import EFlightPhases from './enum/FlightPhases';
 import IWaypoint from '@modules/database/interfaces/Point';
-import EApproachTypes from './enum/ApproachTypes';
+import EDepartureTypes from './enum/DepartureTypes';
+import { ITerminalLeg } from '@modules/database/interfaces/TerminalProcedure';
+import IResponseLog from '@modules/common/interfaces/ResponseLog';
+import ERouteItemTypes from './enum/RouteItemTypes';
+import { ROUTE_DISCONTUNITY } from './navigation.constants';
+
 @Injectable()
 export class NavigationService {
-  flight: IFlight = {
-    callsign: 'TYR183',
-    origin: 'LTCG',
-    destination: 'LTFM',
-    departureConfigration: {
-      runway: '11',
-      activeLandingRunway: '11',
-      departureType: EDepartureTypes.SID,
-      ident: 14143,
-      sidInfo: undefined,
-      sidLegs: undefined,
-    },
-    route: [
-      {
-        type: ERouteItemTypes.INTERSECTION,
-        ident: 'TEMEL',
-      },
-      {
-        type: ERouteItemTypes.AIRWAY,
-        ident: 'UW71',
-      },
-      {
-        type: ERouteItemTypes.INTERSECTION,
-        ident: 'BUK',
-      },
-      {
-        type: ERouteItemTypes.AIRWAY,
-        ident: 'UA4',
-      },
-      {
-        type: ERouteItemTypes.INTERSECTION,
-        ident: 'ERSEN',
-      },
-    ],
-    approachConfigration: {
-      runway: '34L',
-      approachID: 45612,
-      approachType: EApproachTypes.STAR,
-      starLegs: undefined,
-      starInfo: undefined,
-      landingProcedure: 82098,
-      transition: 'SADIK',
-    },
+  // We are using example flight until getting data from simulator
+  private flight: IFlight = ExampleFlight;
 
-    legs: [],
-  };
+  // Defined database service
   constructor(private readonly databaseService: DatabaseService) {}
 
+  // Initial Flight Operations
   async generateFlightLegs() {
-    await this.generateDepartureLegs();
-    await this.generateEnrouteLegs();
-    await this.generateApproachLegs();
-    await this.generateLandingLegs();
+    const departurePhaseLog: IResponseLog = await this.generateDeparturePhase();
+    if (departurePhaseLog) {
+      console.log('TODO:');
+    }
+    await this.generateEnroutePhase();
+    console.log(this.flight.legs);
+    // await this.generateApproachLegs();
+    // await this.generateLandingLegs();
     // await this.generateGoAroundLegs();
   }
 
-  async generateDepartureLegs() {
-    // departure base
+  // ###############
+  // Departure Phase
+  // ###############
+
+  async generateDeparturePhase() {
+    const departureConfigration = this.flight.departureConfigration;
+
     const origin = await this.databaseService.getAirport(this.flight.origin);
 
-    const depRnw = origin.runways.find(
-      (runway) => runway.ident === this.flight.departureConfigration.runway,
+    // Departure Runway Leg Generation
+    const depRwy = origin.runways.find(
+      (runway) => runway.ident === departureConfigration.runway,
     );
 
-    this.flight.legs.push({
-      phase: EFlightPhases.DEP_RWY,
-      type: ELegTypes.DP,
-      ident: `RW${this.flight.departureConfigration.runway}`,
-      position: {
-        latitude: depRnw.latitude,
-        longitude: depRnw.longitude,
-        elevation: depRnw.elevation,
-      },
-    });
+    this.flight.legs.push(
+      this.generateRunwayLeg(depRwy, EFlightPhases.DEP_RWY),
+    );
 
-    // departure configration
-    if (
-      this.flight.departureConfigration.departureType === EDepartureTypes.SID
-    ) {
-      const sidInfo = await this.databaseService.getTerminalProcedureByID(
-        this.flight.departureConfigration.ident,
-      );
-      const sidLegs = await this.databaseService.getLegsOfTerminalProcedure(
-        this.flight.departureConfigration.ident,
-      );
+    // Departure Procedure Leg Generation
+    switch (departureConfigration.departureType) {
+      case EDepartureTypes.SID:
+        // #### SID Procedures ####
+        const sidInfo = await this.databaseService.getTerminalProcedureByID(
+          this.flight.departureConfigration.ident,
+        );
+        const sidLegs = await this.databaseService.getLegsOfTerminalProcedure(
+          this.flight.departureConfigration.ident,
+        );
+        // We store them for next modules
+        // It might be required in other modules
+        this.flight.departureProcedure.sidInfo = sidInfo;
+        this.flight.departureProcedure.sidLegs = sidLegs;
 
-      // We store them for next modules
-      // It might be required in other modules
-      this.flight.departureConfigration.sidInfo = sidInfo;
-      this.flight.departureConfigration.sidLegs = sidLegs;
-
-      sidLegs.forEach((leg: ITerminalLeg, index: number) => {
-        if (leg.trackCode === ELegTypes.CA) {
-          this.flight.legs.push({
-            phase: EFlightPhases.DEP_PROC,
-            type: ELegTypes[leg.trackCode],
-            ident: `(INT${Number(leg.alt.slice(0, -1)).toString() + leg.alt.slice(-1)})`,
-            procedure: {
-              clbAlt:
-                leg.alt.slice(-1) === 'A'
-                  ? Number(leg.alt.slice(0, -1))
-                  : undefined,
-              desAlt:
-                leg.alt.slice(-1) === 'B'
-                  ? Number(leg.alt.slice(0, -1))
-                  : undefined,
-              course: leg.course,
-            },
-            restrictions: {
-              atAlt: Number(leg.alt.slice(0, -1)),
-              maxSpd:
-                leg.speedLimit.speedLimitDescription === 'A'
-                  ? leg.speedLimit.speedLimit
-                  : undefined,
-              atSpd:
-                leg.speedLimit.speedLimitDescription === null
-                  ? leg.speedLimit.speedLimit
-                  : undefined,
-              minSpd:
-                leg.speedLimit.speedLimitDescription === 'B'
-                  ? leg.speedLimit.speedLimit
-                  : undefined,
-            },
-          });
-        } else {
-          if (
-            this.flight.legs[this.flight.legs.length - 1].position !== undefined
-          ) {
-            const previusIndex = this.flight.legs.length - 1;
-            const previusLeg = this.flight.legs[previusIndex];
-            this.flight.legs[previusIndex].togo = parseFloat(
-              this.getDistance(this.flight.legs[previusIndex].position, {
-                latitude: leg.wptLat,
-                longitude: leg.wptLon,
-              }).toFixed(1),
-            );
-            const trueHeading = this.calculateTrueHeading(previusLeg.position, {
-              latitude: leg.wptLat,
-              longitude: leg.wptLon,
-            });
-            this.flight.legs[previusIndex].trueHeading = trueHeading;
-            this.flight.legs[previusIndex].followHeading =
-              this.calculateMagneticHeading(previusLeg.position, trueHeading);
-          }
-          const minAltLimit = leg.alt
-            ? this.getAltitudeRestriction(leg.alt, 'A')
-            : undefined;
-          const maxAltLimit = leg.alt
-            ? this.getAltitudeRestriction(leg.alt, 'B')
-            : undefined;
-          const atAltLimit =
-            !minAltLimit &&
-            !maxAltLimit &&
-            leg.alt !== 'MAP' &&
-            leg.alt !== null
-              ? Number(leg.alt)
-              : undefined;
-          this.flight.legs.push({
-            phase: EFlightPhases.DEP_PROC,
-            type:
-              index !== sidLegs.length - 1
-                ? ELegTypes[leg.trackCode]
-                : ELegTypes.IF,
-            ident: leg.wptID.ident,
-            position: {
-              latitude: leg.wptLat,
-              longitude: leg.wptLon,
-            },
-
-            restrictions: {
-              maxAlt: maxAltLimit,
-              atAlt: atAltLimit,
-              minAlt: minAltLimit,
-              maxSpd:
-                leg.speedLimit.speedLimitDescription === 'A'
-                  ? leg.speedLimit.speedLimit
-                  : undefined,
-              atSpd:
-                leg.speedLimit.speedLimitDescription === null
-                  ? leg.speedLimit.speedLimit
-                  : undefined,
-              minSpd:
-                leg.speedLimit.speedLimitDescription === 'B'
-                  ? leg.speedLimit.speedLimit
-                  : undefined,
-            },
-          });
+        // Loop for SID Legs
+        for (const sidLeg of sidLegs) {
+          this.flight.legs.push(
+            this.generateTerminalLeg(sidLeg, EFlightPhases.DEP_PROC),
+          );
         }
-      });
-
-      // check is sid able for rnwy
-      // if (condition) {
-      // }
+        break;
+      case EDepartureTypes.HEADING:
+        // TODO:
+        break;
+      default:
+        return {
+          error: true,
+          code: 'NVM001',
+          message: 'UNDEFINED DEPARTURE TYPE DETECTED',
+        };
     }
   }
 
-  async generateEnrouteLegs() {
-    const initialFix = this.flight.legs.find(
-      (leg) => leg.type === ELegTypes.IF,
-    );
+  // ######################
+  // Generate Enroute Phase
+  // ######################
+
+  async generateEnroutePhase() {
+    let index = 0;
     let prevLegIndex = this.flight.legs.length - 1;
 
     for (const routeItem of this.flight.route) {
-      const index = this.flight.route.indexOf(routeItem);
-      const prevEnrouteItem = index !== 0 && this.flight.route[index - 1];
-      const nextEnrouteItem =
-        index !== this.flight.route.length - 1 && this.flight.route[index + 1];
-      console.log(routeItem);
-      if (routeItem.type === ERouteItemTypes.INTERSECTION) {
-        let getIntersectionInformation: IWaypoint | IWaypoint[] =
-          await this.databaseService.getWPTByIdent(routeItem.ident);
-        getIntersectionInformation = getIntersectionInformation[0];
+      switch (routeItem.type) {
+        case ERouteItemTypes.INTERSECTION:
+          const intersectionInformation: IWaypoint =
+            await this.databaseService.getWPTByID(routeItem.id);
 
-        if (index === 0) {
-          if (initialFix.ident !== routeItem.ident) {
-            this.flight.legs.push(ROUTE_DISCONTUNITY);
+          // ############ CHECK THIS CODE FOR OPTIMIZATION ############
+          if (index === 0) {
+            if (
+              this.flight.legs[prevLegIndex].ident !==
+              intersectionInformation.ident
+            ) {
+              this.flight.legs.push(ROUTE_DISCONTUNITY);
+              prevLegIndex++;
+            }
+          }
+          // ########## END CHECK THIS CODE FOR OPTIMIZATION ###########
+          else {
+            this.flight.legs.push(
+              this.generateWaypointLeg(
+                intersectionInformation,
+                EFlightPhases.ENROUTE,
+              ),
+            );
+          }
+          prevLegIndex++;
+          break;
+        case ERouteItemTypes.AIRWAY:
+          const airway = await this.databaseService.getAirwayWaypointsByID(
+            routeItem.id,
+          );
 
-            this.flight.legs.push({
-              phase: EFlightPhases.ENROUTE,
-              type: ELegTypes.IF,
-              ident: getIntersectionInformation.ident,
-              position: {
-                latitude: getIntersectionInformation.latitude,
-                longitude: getIntersectionInformation.longitude,
-              },
-            });
+          const prevEnrouteItem =
+            index !== 0 ? this.flight.route[index - 1] : undefined;
+          const nextEnrouteItem =
+            index !== this.flight.route.length - 1 &&
+            this.flight.route[index + 1];
+
+          const firstLegIndex = airway.legs.indexOf(
+            airway.legs.find((leg) => leg.id === prevEnrouteItem.id),
+          );
+
+          const lastLegIndex = airway.legs.indexOf(
+            airway.legs.find((leg) => leg.id === nextEnrouteItem.id),
+          );
+
+          let requiredLegs: IWaypoint[];
+
+          if (firstLegIndex > lastLegIndex) {
+            requiredLegs = airway.legs
+              .slice(lastLegIndex + 1, firstLegIndex)
+              .reverse();
+          } else {
+            requiredLegs = airway.legs.slice(firstLegIndex + 1, lastLegIndex);
+          }
+          for (const leg of requiredLegs) {
+            this.flight.legs.push(
+              this.generateWaypointLeg(leg, EFlightPhases.ENROUTE),
+            );
             prevLegIndex++;
           }
-        } else if (index === this.flight.route.length - 1) {
-          this.flight.legs.push({
-            phase: EFlightPhases.ENROUTE,
-            type: ELegTypes.AI,
-            ident: getIntersectionInformation.ident,
-            position: {
-              latitude: getIntersectionInformation.latitude,
-              longitude: getIntersectionInformation.longitude,
-            },
-          });
-          this.setLegHeadingAndDistanceOnEnroute(
-            prevLegIndex,
-            getIntersectionInformation,
-          );
-          prevLegIndex++;
-        } else {
-          this.flight.legs.push({
-            phase: EFlightPhases.ENROUTE,
-            type: ELegTypes.CF,
-            ident: getIntersectionInformation.ident,
-            position: {
-              latitude: getIntersectionInformation.latitude,
-              longitude: getIntersectionInformation.longitude,
-            },
-          });
+          break;
 
-          this.setLegHeadingAndDistanceOnEnroute(
-            prevLegIndex,
-            getIntersectionInformation,
-          );
-          prevLegIndex++;
-        }
-      } else if (routeItem.type === ERouteItemTypes.AIRWAY) {
-        const airway = await this.databaseService.getAirwayWaypoints(
-          routeItem.ident,
-        );
-
-        const firstLegIndex = airway.legs.indexOf(
-          airway.legs.find((leg) => leg.ident === prevEnrouteItem.ident),
-        );
-
-        const lastLegIndex = airway.legs.indexOf(
-          airway.legs.find((leg) => leg.ident === nextEnrouteItem.ident),
-        );
-
-        let requiredLegs: IWaypoint[];
-
-        if (firstLegIndex > lastLegIndex) {
-          requiredLegs = airway.legs
-            .slice(lastLegIndex + 1, firstLegIndex)
-            .reverse();
-        } else {
-          requiredLegs = airway.legs.slice(firstLegIndex + 1, lastLegIndex);
-        }
-
-        for (const leg of requiredLegs) {
-          this.flight.legs.push({
-            phase: EFlightPhases.ENROUTE,
-            type: ELegTypes.CF,
-            ident: leg.ident,
-            position: {
-              latitude: leg.latitude,
-              longitude: leg.longitude,
-            },
-          });
-          this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, leg);
-          prevLegIndex++;
-        }
-      } else {
-        return 'error';
+        default:
+          return {
+            error: true,
+            code: 'NVM002',
+            message: 'ROUTE ITEM TYPE IS UNKNOWN',
+          };
       }
+
+      index++;
     }
   }
 
-  async generateApproachLegs() {
+  // #######################
+  // Generate Arrvival Phase
+  // #######################
+
+  async generateArrvivalPhase() {}
+
+  // #######################
+  // Generate Approach Phase
+  // #######################
+
+  async generateApproachPhase() {}
+
+  // Helper functions
+
+  // #########################
+  // Get Altitude Restrictions
+  // #########################
+  // HOW TO USE?
+  // Due to the our database provider, altitude restriction value comes like XXXXXAYYYYYB or ZZZZZ
+  // We get an altitude restrictions object from this function
+  // You have to input raw database value of altitude restrictions
+  getAltitudeRestriction(
+    rawAltitudeRestriction: string,
+  ): ILegAltitudeRestrictions | undefined {
+    const altitudeRestrictions: ILegAltitudeRestrictions = {
+      minAlt: undefined,
+      atAlt: undefined,
+      maxAlt: undefined,
+    };
+
+    // Minimum Level Restrictions
+    const aboveRestrictionIndex = rawAltitudeRestriction.indexOf('A');
+    if (aboveRestrictionIndex >= 5) {
+      altitudeRestrictions.minAlt = Number(
+        rawAltitudeRestriction.substring(
+          aboveRestrictionIndex - 5,
+          aboveRestrictionIndex,
+        ),
+      );
+    } else if (aboveRestrictionIndex > 0) {
+      altitudeRestrictions.minAlt = Number(
+        rawAltitudeRestriction.substring(0, aboveRestrictionIndex),
+      );
+    }
+
+    // Maximum Level Restrictions
+    const belowRestrictionIndex = rawAltitudeRestriction.indexOf('B');
+    if (belowRestrictionIndex >= 5) {
+      altitudeRestrictions.maxAlt = Number(
+        rawAltitudeRestriction.substring(
+          belowRestrictionIndex - 5,
+          belowRestrictionIndex,
+        ),
+      );
+    } else if (belowRestrictionIndex > 0) {
+      altitudeRestrictions.maxAlt = Number(
+        rawAltitudeRestriction.substring(0, belowRestrictionIndex),
+      );
+    }
+
+    // At Level Restrictions
     if (
-      this.flight.approachConfigration.approachType === EApproachTypes.VECTORS
+      rawAltitudeRestriction !== 'MAP' &&
+      rawAltitudeRestriction !== null &&
+      !altitudeRestrictions.maxAlt &&
+      !altitudeRestrictions.minAlt
     ) {
-      this.flight.legs.push({
-        phase: EFlightPhases.APP_PROC,
-        type: ELegTypes.VC,
-        ident: '(VECTORS)',
-      });
+      altitudeRestrictions.atAlt = Number(rawAltitudeRestriction);
+    }
+
+    return altitudeRestrictions;
+  }
+
+  // ######################
+  // Get Speed Restrictions
+  // ######################
+  // HOW TO USE?
+  // Due to the our database provider, speed limit value comes in two parts as limit and description
+  // We get a speed restrictions object from this function
+  // You have to input raw database value of limit and description
+  getSpeedRestriction(limit: number | null, description: string | null) {
+    let speedRestriction: ILegSpeedRestrictions;
+
+    if (limit === null) {
+      return undefined;
+    } else if (description === 'A') {
+      speedRestriction.minSpd = limit;
+    } else if (description === 'B') {
+      speedRestriction.maxSpd = limit;
     } else {
-      const starInfo = await this.databaseService.getTerminalProcedureByID(
-        this.flight.approachConfigration.approachID,
-      );
-
-      this.flight.approachConfigration.starInfo = starInfo;
-
-      const starLegs = await this.databaseService.getLegsOfTerminalProcedure(
-        this.flight.approachConfigration.approachID,
-      );
-
-      const runwayFilteredStarLegs = starLegs.filter(
-        (leg) =>
-          leg.transition === 'ALL' ||
-          leg.transition === `RW${this.flight.approachConfigration.runway}`,
-      );
-
-      let prevLegIndex = this.flight.legs.length - 1;
-      for (const leg of runwayFilteredStarLegs) {
-        const position = {
-          latitude: leg.wptLat,
-          longitude: leg.wptLon,
-        };
-
-        const minAltLimit = leg.alt
-          ? this.getAltitudeRestriction(leg.alt, 'A')
-          : undefined;
-        const maxAltLimit = leg.alt
-          ? this.getAltitudeRestriction(leg.alt, 'B')
-          : undefined;
-        const atAltLimit =
-          !minAltLimit && !maxAltLimit && leg.alt !== 'MAP' && leg.alt !== null
-            ? Number(leg.alt)
-            : undefined;
-
-        if (leg.type === '6') {
-          const previusLeg = this.flight.legs[prevLegIndex];
-          if (previusLeg.ident !== leg.wptID.ident) {
-            this.flight.legs.push({
-              phase: EFlightPhases.APP_PROC,
-              type: leg.type as ELegTypes,
-              ident: leg.wptID.ident,
-              position,
-              restrictions: {
-                atAlt: atAltLimit,
-                minAlt: minAltLimit,
-                maxAlt: maxAltLimit,
-                maxSpd:
-                  leg.speedLimit.speedLimitDescription === 'A'
-                    ? leg.speedLimit.speedLimit
-                    : undefined,
-                atSpd:
-                  leg.speedLimit.speedLimitDescription === null
-                    ? leg.speedLimit.speedLimit
-                    : undefined,
-                minSpd:
-                  leg.speedLimit.speedLimitDescription === 'B'
-                    ? leg.speedLimit.speedLimit
-                    : undefined,
-              },
-              transition: true,
-            });
-
-            this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, position);
-
-            prevLegIndex++;
-          }
-        } else {
-          this.flight.legs.push({
-            phase: EFlightPhases.APP_PROC,
-            type: leg.type as ELegTypes,
-            ident: leg.wptID.ident,
-            position,
-            restrictions: {
-              atAlt: atAltLimit,
-              minAlt: minAltLimit,
-              maxAlt: maxAltLimit,
-              maxSpd:
-                leg.speedLimit.speedLimitDescription === 'A'
-                  ? leg.speedLimit.speedLimit
-                  : undefined,
-              atSpd:
-                leg.speedLimit.speedLimitDescription === null
-                  ? leg.speedLimit.speedLimit
-                  : undefined,
-              minSpd:
-                leg.speedLimit.speedLimitDescription === 'B'
-                  ? leg.speedLimit.speedLimit
-                  : undefined,
-            },
-          });
-
-          this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, position);
-
-          prevLegIndex++;
-        }
-      }
-    }
-  }
-
-  async generateLandingLegs() {
-    const destination = await this.databaseService.getAirport(
-      this.flight.destination,
-    );
-
-    const landingProcedure =
-      await this.databaseService.getTerminalProcedureByID(
-        this.flight.approachConfigration.landingProcedure,
-      );
-
-    const landingProcedureLegs =
-      await this.databaseService.getLegsOfTerminalProcedure(
-        this.flight.approachConfigration.landingProcedure,
-      );
-
-    let transitionProcLegs = landingProcedureLegs.filter(
-      (proc) =>
-        proc.type === 'A' &&
-        proc.transition === this.flight.approachConfigration.transition,
-    );
-    const ilsProcLegs = landingProcedureLegs.filter(
-      (proc) => proc.type === 'I',
-    );
-
-    let prevLegIndex = this.flight.legs.length - 1;
-    const prevLeg = this.flight.legs[prevLegIndex];
-    const isProcContainsLeg = transitionProcLegs.indexOf(
-      transitionProcLegs.find((leg) => leg.wptID.ident === prevLeg.ident),
-    );
-
-    if (isProcContainsLeg !== -1) {
-      transitionProcLegs = transitionProcLegs.slice(isProcContainsLeg + 1);
+      speedRestriction.atSpd = limit;
     }
 
-    transitionProcLegs.forEach((leg) => {
-      const position = {
-        latitude: leg.wptLat,
-        longitude: leg.wptLon,
-      };
-
-      const minAltLimit = leg.alt
-        ? this.getAltitudeRestriction(leg.alt, 'A')
-        : undefined;
-      const maxAltLimit = leg.alt
-        ? this.getAltitudeRestriction(leg.alt, 'B')
-        : undefined;
-      const atAltLimit =
-        !minAltLimit && !maxAltLimit && leg.alt !== 'MAP' && leg.alt !== null
-          ? Number(leg.alt)
-          : undefined;
-
-      this.flight.legs.push({
-        phase: EFlightPhases.TRS_PROC,
-        type: leg.trackCode as ELegTypes,
-        ident: leg.wptID.ident,
-        position,
-        restrictions: {
-          atAlt: atAltLimit,
-          minAlt: minAltLimit,
-          maxAlt: maxAltLimit,
-          maxSpd:
-            leg.speedLimit.speedLimitDescription === 'A'
-              ? leg.speedLimit.speedLimit
-              : undefined,
-          atSpd:
-            leg.speedLimit.speedLimitDescription === null
-              ? leg.speedLimit.speedLimit
-              : undefined,
-          minSpd:
-            leg.speedLimit.speedLimitDescription === 'B'
-              ? leg.speedLimit.speedLimit
-              : undefined,
-        },
-      });
-
-      this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, position);
-
-      prevLegIndex++;
-    });
-
-    ilsProcLegs.forEach((leg) => {
-      const position = {
-        latitude: leg.wptLat,
-        longitude: leg.wptLon,
-      };
-
-      const minAltLimit = leg.alt
-        ? this.getAltitudeRestriction(leg.alt, 'A')
-        : undefined;
-      const maxAltLimit = leg.alt
-        ? this.getAltitudeRestriction(leg.alt, 'B')
-        : undefined;
-      const atAltLimit =
-        !minAltLimit && !maxAltLimit && leg.alt !== 'MAP' && leg.alt !== null
-          ? Number(leg.alt)
-          : undefined;
-
-      if (leg.navDist > this.flight.legs[prevLegIndex].dmeDistance) {
-        const arrRnw = destination.runways.find(
-          (runway) => runway.ident === this.flight.approachConfigration.runway,
-        );
-
-        this.flight.legs.push({
-          phase: EFlightPhases.ARR_RWY,
-          type: ELegTypes.AR,
-          ident: `RW${this.flight.approachConfigration.runway}`,
-          position: {
-            latitude: arrRnw.latitude,
-            longitude: arrRnw.longitude,
-            elevation: arrRnw.elevation,
-          },
-        });
-        this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, {
-          latitude: arrRnw.latitude,
-          longitude: arrRnw.longitude,
-        });
-        prevLegIndex++;
-      }
-
-      this.flight.legs.push({
-        phase: EFlightPhases.LND_PROC,
-        type: leg.trackCode as ELegTypes,
-        ident: leg.wptID.ident,
-        position,
-        restrictions: {
-          atAlt: atAltLimit,
-          minAlt: minAltLimit,
-          maxAlt: maxAltLimit,
-          maxSpd:
-            leg.speedLimit.speedLimitDescription === 'A'
-              ? leg.speedLimit.speedLimit
-              : undefined,
-          atSpd:
-            leg.speedLimit.speedLimitDescription === null
-              ? leg.speedLimit.speedLimit
-              : undefined,
-          minSpd:
-            leg.speedLimit.speedLimitDescription === 'B'
-              ? leg.speedLimit.speedLimit
-              : undefined,
-        },
-        dmeDistance: leg.navDist,
-      });
-
-      this.setLegHeadingAndDistanceOnEnroute(prevLegIndex, position);
-
-      prevLegIndex++;
-    });
-    console.log(landingProcedure);
+    return speedRestriction;
   }
 
-  async getFlightLegs() {
-    console.log(this.flight.legs);
-  }
-
-  // Helper Functions
+  // ##############################################
+  // Geographical Distance and Heading Calculations
+  // ##############################################
   toRadians(degrees: number): number {
     return (degrees * Math.PI) / 180;
   }
@@ -588,6 +282,7 @@ export class NavigationService {
     return (radians * 180) / Math.PI;
   }
 
+  // To get distance between two points.
   getDistance(coord1: IPosition, coord2: IPosition): number {
     const R = 6371 / 1.852; // Earth's radius in nautical miles
     const dLat = this.toRadians(coord2.latitude - coord1.latitude);
@@ -602,19 +297,11 @@ export class NavigationService {
     return parseFloat((R * c).toFixed(1));
   }
 
-  getAltitudeRestriction(input: string, type: string) {
-    const index = input.indexOf(type); // Find the index of the letter referance type
-    if (index >= 5) {
-      // If referance type is found after the fifth character
-      return Number(input.substring(index - 5, index)); // Get the 5 characters before referance type
-    } else if (index > 0) {
-      // If referance type is found but before the fifth character
-      return Number(input.substring(0, index)); // Get all characters from the start to referance type
-    }
-    return undefined; // If referance type is not found or is at the start, return an empty string
-  }
+  // To calculate true and magnetic heading between two points.
+  // Warning! coord1 has defined as location of aircraft compass
+  calculateHeading(coord1: IPosition, coord2: IPosition): ICompassDirections {
+    let compassDirections: ICompassDirections;
 
-  calculateTrueHeading(coord1: IPosition, coord2: IPosition): number {
     const startLat = this.toRadians(coord1.latitude);
     const startLng = this.toRadians(coord1.longitude);
     const destLat = this.toRadians(coord2.latitude);
@@ -628,41 +315,141 @@ export class NavigationService {
     const heading = this.toDegrees(Math.atan2(y, x));
 
     // Convert heading to a bearing value (0° - 360°)
-    return Math.round((heading + 360) % 360);
+    compassDirections.trueHeading = Math.round((heading + 360) % 360);
+    compassDirections.magneticHeading =
+      this.calculateMagneticHeadingDependingOnTrueHeading(
+        coord1,
+        compassDirections.trueHeading,
+      );
+
+    return compassDirections;
   }
 
-  calculateMagneticHeading(coord1: IPosition, heading: number): number {
+  calculateMagneticHeadingDependingOnTrueHeading(
+    coord1: IPosition,
+    heading: number,
+  ) {
     // Get the magnetic declination
     const declination = magvar.get(coord1.latitude, coord1.longitude);
 
     // Adjust the true heading with the magnetic declination to get the magnetic heading
-    const magneticHeading = (heading - declination + 360) % 360;
-    return Math.round(magneticHeading);
+    return Math.round((heading - declination + 360) % 360);
   }
 
-  setLegHeadingAndDistanceOnEnroute(prevLegIndex, getIntersectionInformation) {
-    const intersectionPosition: IPosition = {
-      latitude: getIntersectionInformation.latitude,
-      longitude: getIntersectionInformation.longitude,
+  // #############################################
+  // Leg Generators | Runway & Waypoints & Navaids
+  // #############################################
+
+  generateRunwayLeg(
+    runwayInformations: IRunway,
+    phase: EFlightPhases.ARR_RWY | EFlightPhases.DEP_RWY,
+  ): ILeg {
+    const position: IPosition = {
+      latitude: runwayInformations.latitude,
+      longitude: runwayInformations.longitude,
+      elevation: runwayInformations.elevation,
     };
+    // If runway has associated with ils dme, application should get ils dme course as magnetic heading!
+    return {
+      phase: phase,
+      type: phase === EFlightPhases.DEP_RWY ? ELegTypes.DR : ELegTypes.AR,
+      ident: `RW${runwayInformations.ident}`,
+      position: position,
+      course: runwayInformations.ils
+        ? Number(runwayInformations.ils.locCourse)
+        : this.calculateMagneticHeadingDependingOnTrueHeading(
+            position,
+            runwayInformations.trueHeading,
+          ),
+      //   TODO: SET DME ON ILS ENTITY THEN HERE
+      //   dme: {
+      //     ident: runwayInformations.ils.ident,
+      //     type: ENavaidTypes;
+      // frequency: string;
+      // distance: number;
+      // course: number;
+      //   },
+    };
+  }
 
-    const trueHeading = this.calculateTrueHeading(
-      this.flight.legs[prevLegIndex].position,
-      intersectionPosition,
-    );
+  generateWaypointLeg(
+    waypoint: IWaypoint,
+    phase: EFlightPhases,
+    type?: ELegTypes,
+  ): ILeg {
+    return {
+      phase,
+      type: type ? type : ELegTypes.CF,
+      ident: waypoint.ident,
+      position: {
+        latitude: waypoint.latitude,
+        longitude: waypoint.longitude,
+      },
+    };
+  }
 
-    const magneticHeading = this.calculateMagneticHeading(
-      this.flight.legs[prevLegIndex].position,
-      trueHeading,
-    );
+  generateProcedureLeg(
+    terminalLeg: ITerminalLeg,
+    phase:
+      | EFlightPhases.DEP_PROC
+      | EFlightPhases.APP_PROC
+      | EFlightPhases.ARR_PROC,
+  ): ILeg {
+    const altitudeRestrictions = this.getAltitudeRestriction(terminalLeg.alt);
+    const ident = altitudeRestrictions.minAlt
+      ? `(CLB${altitudeRestrictions.minAlt})`
+      : `(DES${altitudeRestrictions.maxAlt})`;
 
-    const togo = this.getDistance(
-      this.flight.legs[prevLegIndex].position,
-      intersectionPosition,
-    );
+    return {
+      phase: phase,
+      type: terminalLeg.trackCode as ELegTypes,
+      ident: ident,
+      procedure: {
+        course: terminalLeg.course,
+        clbAlt: altitudeRestrictions.minAlt,
+        desAlt: altitudeRestrictions.maxAlt,
+      },
+      restrictions: {
+        altitude: altitudeRestrictions,
+      },
+    };
+  }
 
-    this.flight.legs[prevLegIndex].togo = togo;
-    this.flight.legs[prevLegIndex].trueHeading = trueHeading;
-    this.flight.legs[prevLegIndex].followHeading = magneticHeading;
+  generateTerminalLeg(
+    terminalLeg: ITerminalLeg,
+    phase:
+      | EFlightPhases.DEP_PROC
+      | EFlightPhases.APP_PROC
+      | EFlightPhases.ARR_PROC,
+  ): ILeg {
+    if (
+      terminalLeg.trackCode === ELegTypes.CF ||
+      terminalLeg.trackCode === ELegTypes.IF ||
+      terminalLeg.trackCode === ELegTypes.TF // TODO: CHECK TF MEANING IN PROCEDURES
+    ) {
+      return this.generateWaypointLeg(
+        terminalLeg.wptID,
+        phase,
+        terminalLeg.trackCode,
+      );
+    } else if (terminalLeg.trackCode === ELegTypes.CA) {
+      return this.generateProcedureLeg(terminalLeg, phase);
+    }
+  }
+
+  calculateAndSetDistanceAndCompassDirections() {
+    const legs = this.flight.legs;
+
+    for (let index = 0; index < legs.length; index++) {
+      const currentLeg = legs[index];
+      const nextLeg = legs[index + 1];
+
+      if (currentLeg.position && nextLeg.position) {
+        this.flight.legs[index].togo = this.getDistance(
+          currentLeg.position,
+          nextLeg.position,
+        );
+      }
+    }
   }
 }

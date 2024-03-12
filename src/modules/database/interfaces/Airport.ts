@@ -1,3 +1,5 @@
+import IPosition from '@modules/common/interfaces/Position';
+
 export default interface IAirport {
   id: number;
   name: string;
@@ -21,6 +23,17 @@ export interface IRunway {
   latitude: number;
   longitude: number;
   elevation: number;
+  ils?: IILS;
 }
 
-export interface IILS {}
+export interface IILS {
+  id: number;
+  ident?: string;
+  frequency: number;
+  gsAngle: number;
+  category: number;
+  locCourse: number;
+  crossingHeight: number;
+  hasDme: boolean;
+  position: IPosition;
+}

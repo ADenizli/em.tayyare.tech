@@ -4,7 +4,7 @@ enum EFlightPhases {
   ENROUTE,
   APP_PROC,
   TRS_PROC,
-  LND_PROC,
+  ARR_PROC,
   ARR_RWY,
   GO_AROUND,
 }

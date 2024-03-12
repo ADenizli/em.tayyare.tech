@@ -7,19 +7,22 @@ import ITerminalProcedure, {
 } from '@modules/database/interfaces/TerminalProcedure';
 import EFlightPhases from '../enum/FlightPhases';
 import EApproachTypes from '../enum/ApproachTypes';
+import ENavaidTypes from '../enum/NavaidTypes';
 
 export default interface IFlight {
   callsign: string;
   origin: string;
   destination: string;
   route?: IRouteItem[];
+  departureProcedure?: {
+    sidLegs?: ITerminalLeg[];
+    sidInfo?: ITerminalProcedure;
+  };
   departureConfigration: {
+    ident?: number;
     runway: string;
     activeLandingRunway: string;
     departureType: EDepartureTypes;
-    ident?: number;
-    sidLegs: ITerminalLeg[];
-    sidInfo: ITerminalProcedure;
   };
   approachConfigration: {
     runway: string;
@@ -36,32 +39,50 @@ export default interface IFlight {
 
 export interface IRouteItem {
   type: ERouteItemTypes;
-  ident: string;
+  id: number;
 }
 
 export interface ILeg {
-  phase: EFlightPhases;
-  type: ELegTypes;
-  ident: string;
-  trueHeading?: number;
-  followHeading?: number;
-  position?: IPosition;
-  procedure?: IProcedure;
-  togo?: number;
+  phase: EFlightPhases; // REQ FOR: ALL
+  type: ELegTypes; // REQ FOR: ALL
+  ident: string; // REQ FOR: ALL
+  compassDirections?: ICompassDirections; // REQ FOR: ALL
+  position?: IPosition; // REQ FOR: RWY, FIX
+  procedure?: IProcedure; // REQ FOR: CLBTO, DESTO
+  togo?: number; // REQ FOR: ALL
+  course?: number;
   restrictions?: {
-    maxAlt?: number;
-    atAlt?: number;
-    minAlt?: number;
-    maxSpd?: number;
-    atSpd?: number;
-    minSpd?: number;
+    altitude?: ILegAltitudeRestrictions;
+    speed?: ILegSpeedRestrictions;
   };
-  transition?: boolean;
-  dmeDistance?: number;
+  transition?: boolean; // REQ FOR: APP, LND
+  dme?: {
+    ident: string;
+    type: ENavaidTypes;
+    frequency: string;
+    distance: number;
+    course: number;
+  };
 }
 
+export interface ILegAltitudeRestrictions {
+  maxAlt?: number;
+  atAlt?: number;
+  minAlt?: number;
+}
+
+export interface ILegSpeedRestrictions {
+  maxSpd?: number;
+  atSpd?: number;
+  minSpd?: number;
+}
 export interface IProcedure {
   clbAlt?: number;
   desAlt?: number;
   course: number;
+}
+
+export interface ICompassDirections {
+  trueHeading: number;
+  magneticHeading: number;
 }

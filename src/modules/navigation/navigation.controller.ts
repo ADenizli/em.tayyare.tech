@@ -9,9 +9,4 @@ export class NavigationController {
   GenerateFlightLegs(): any {
     return this.navigationService.generateFlightLegs();
   }
-
-  @Get('getFlightLegs')
-  GetFlightLegs(): any {
-    return this.navigationService.getFlightLegs();
-  }
 }

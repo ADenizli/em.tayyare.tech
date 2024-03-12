@@ -16,11 +16,12 @@ import IWaypoint from './interfaces/Point';
 import { AirwayEntity } from './entities/airway.entity';
 import { AirwayRepository } from './repositories/airway.repo';
 import IAirway from './interfaces/Airway';
+import { AirportRepository } from './repositories/airport.repo';
 @Injectable()
 export class DatabaseService {
   constructor(
     @InjectRepository(AirportEntity)
-    private readonly airportRepository: EntityRepository<AirportEntity>,
+    private readonly airportRepository: AirportRepository,
     @InjectRepository(RunwayEntity)
     private readonly runwayRepository: EntityRepository<RunwayEntity>,
     @InjectRepository(TerminalProcedureEntity)
@@ -38,10 +39,7 @@ export class DatabaseService {
   }
 
   async getAirport(icao: string) {
-    const airport = await this.airportRepository.findOne(
-      { icao },
-      { populate: ['runways'] },
-    );
+    const airport = await this.airportRepository.getAirportByICAO(icao);
     return airport;
   }
 
@@ -90,9 +88,13 @@ export class DatabaseService {
     return await this.waypointEntity.getWaypointByIdent(ident);
   }
 
+  async getWPTByID(id: number): Promise<IWaypoint> {
+    return await this.waypointEntity.getWaypointByID(id);
+  }
+
   // Airways Table
   // Reading
-  async getAirwayWaypoints(ident: string): Promise<IAirway> {
-    return await this.airwayEntity.getAirwayWithWaypoints(ident);
+  async getAirwayWaypointsByID(id: number): Promise<IAirway> {
+    return await this.airwayEntity.getAirwayWithWaypoints(id);
   }
 }
