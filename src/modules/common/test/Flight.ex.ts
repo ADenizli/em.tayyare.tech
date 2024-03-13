@@ -43,10 +43,13 @@ export const ExampleFlight: IFlight = {
     runway: '34L',
     approachID: 45612,
     approachType: EApproachTypes.STAR,
-    starLegs: undefined,
-    starInfo: undefined,
     landingProcedure: 82098,
     transition: 'SADIK',
+  },
+
+  approachProcedure: {
+    starLegs: undefined,
+    starInfo: undefined,
   },
 
   legs: [],

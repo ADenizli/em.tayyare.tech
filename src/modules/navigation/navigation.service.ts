@@ -18,6 +18,8 @@ import { ITerminalLeg } from '@modules/database/interfaces/TerminalProcedure';
 import IResponseLog from '@modules/common/interfaces/ResponseLog';
 import ERouteItemTypes from './enum/RouteItemTypes';
 import { ROUTE_DISCONTUNITY } from './navigation.constants';
+import EApproachTypes from './enum/ApproachTypes';
+import ELandingTypes from './enum/LandingTypes';
 
 @Injectable()
 export class NavigationService {
@@ -34,9 +36,9 @@ export class NavigationService {
       console.log('TODO:');
     }
     await this.generateEnroutePhase();
+    await this.generateApproachPhase();
+    await this.generateLandingPhase();
     console.log(this.flight.legs);
-    // await this.generateApproachLegs();
-    // await this.generateLandingLegs();
     // await this.generateGoAroundLegs();
   }
 
@@ -176,16 +178,93 @@ export class NavigationService {
   }
 
   // #######################
-  // Generate Arrvival Phase
-  // #######################
-
-  async generateArrvivalPhase() {}
-
-  // #######################
   // Generate Approach Phase
   // #######################
 
-  async generateApproachPhase() {}
+  async generateApproachPhase() {
+    switch (this.flight.approachConfigration.approachType) {
+      case EApproachTypes.STAR:
+        const { approachConfigration } = this.flight;
+        const starInfo = await this.databaseService.getTerminalProcedureByID(
+          approachConfigration.approachID,
+        );
+        const starLegs = await this.databaseService.getLegsOfTerminalProcedure(
+          approachConfigration.approachID,
+        );
+
+        // Set them to approach procedure variable to use on next time
+
+        this.flight.approachProcedure.starInfo = starInfo;
+        this.flight.approachProcedure.starLegs = starLegs;
+
+        // Just get all procedures and our runways legs!
+        const filteredStarLegs = starLegs.filter(
+          (leg) =>
+            leg.transition === 'ALL' ||
+            leg.transition === `RW${approachConfigration.runway}`,
+        );
+
+        for (const leg of filteredStarLegs) {
+          // If procedure has already contains transition waypoints before,
+          // FMS should pass them without pushing
+
+          const isAlreadyDeclared = this.flight.legs.some(
+            (declaredLeg) => declaredLeg.ident === leg.wptID.ident,
+          );
+          if (leg.transition !== 'ALL' && !isAlreadyDeclared) {
+            this.flight.legs.push(
+              this.generateTerminalLeg(leg, EFlightPhases.APP_PROC),
+            );
+          } else {
+            this.flight.legs.push(
+              this.generateTerminalLeg(leg, EFlightPhases.APP_PROC),
+            );
+          }
+        }
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  // #######################
+  // Generate Landing Phase
+  // #######################
+
+  async generateLandingPhase() {
+    const { approachConfigration } = this.flight;
+    const landingInfo = await this.databaseService.getTerminalProcedureByID(
+      approachConfigration.landingProcedure,
+    );
+    const landingLegs = await this.databaseService.getLegsOfTerminalProcedure(
+      approachConfigration.landingProcedure,
+    );
+
+    const landingType: ELandingTypes | null =
+      this.getLandingProcedureFromRawLandingData(landingInfo.fullName);
+
+    // If undefined landing type entered, FMS should return failure
+    // Then, push visual approach procedures if needed TODO:
+    if (landingType === null) {
+      return {
+        error: true,
+        code: 'NVM003',
+        message: 'Undefined landing type has been entered',
+      };
+    }
+
+    // Just get required landing legs with transition legs
+    const landingLegsWithTransition = landingLegs.filter(leg => leg.transition === )
+    for (const leg of landingLegsWithTransition) {
+      // If procedure has already contains transition waypoints before,
+      // FMS should pass them without pushing
+
+      const isAlreadyDeclared = this.flight.legs.some(
+        (declaredLeg) => declaredLeg.ident === leg.wptID.ident,
+      );
+    }
+  }
 
   // Helper functions
 
@@ -434,6 +513,21 @@ export class NavigationService {
       );
     } else if (terminalLeg.trackCode === ELegTypes.CA) {
       return this.generateProcedureLeg(terminalLeg, phase);
+    }
+  }
+
+  getLandingProcedureFromRawLandingData(
+    rawLandingData: string,
+  ): ELandingTypes | null {
+    const splittedLandingData = rawLandingData.split(' ');
+    switch (splittedLandingData[1]) {
+      case 'ILS':
+        return ELandingTypes.ILS;
+      case 'VORDME':
+        return ELandingTypes.VORDME;
+
+      default:
+        return null;
     }
   }
 

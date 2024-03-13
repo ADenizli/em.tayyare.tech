@@ -29,10 +29,13 @@ export default interface IFlight {
     approachID: number;
     approachType: EApproachTypes;
     ident?: string;
-    starLegs: ITerminalLeg[];
-    starInfo: ITerminalProcedure;
     transition?: string;
     landingProcedure: number;
+  };
+  approachProcedure?: {
+    starInfo?: ITerminalProcedure;
+    starLegs?: ITerminalLeg[];
+    transition?: string;
   };
   legs: ILeg[];
 }
