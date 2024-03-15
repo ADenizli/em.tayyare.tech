@@ -7,7 +7,7 @@ import ITerminalProcedure, {
 } from '@modules/database/interfaces/TerminalProcedure';
 import EFlightPhases from '../enum/FlightPhases';
 import EApproachTypes from '../enum/ApproachTypes';
-import ENavaidTypes from '../enum/NavaidTypes';
+import { INavaid } from '@modules/database/interfaces/Point';
 
 export default interface IFlight {
   callsign: string;
@@ -59,13 +59,8 @@ export interface ILeg {
     speed?: ILegSpeedRestrictions;
   };
   transition?: boolean; // REQ FOR: APP, LND
-  dme?: {
-    ident: string;
-    type: ENavaidTypes;
-    frequency: string;
-    distance: number;
-    course: number;
-  };
+  dme?: INavaid;
+  lastIntBeforeRunway?: boolean;
 }
 
 export interface ILegAltitudeRestrictions {
@@ -83,6 +78,7 @@ export interface IProcedure {
   clbAlt?: number;
   desAlt?: number;
   course: number;
+  dmeDistance?: number;
 }
 
 export interface ICompassDirections {

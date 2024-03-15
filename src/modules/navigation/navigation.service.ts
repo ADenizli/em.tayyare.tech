@@ -255,7 +255,11 @@ export class NavigationService {
     }
 
     // Just get required landing legs with transition legs
-    const landingLegsWithTransition = landingLegs.filter(leg => leg.transition === )
+    const landingLegsWithTransition = landingLegs.filter(
+      (leg) =>
+        leg.transition === approachConfigration.transition ||
+        leg.transition.length === 0,
+    );
     for (const leg of landingLegsWithTransition) {
       // If procedure has already contains transition waypoints before,
       // FMS should pass them without pushing
@@ -263,6 +267,12 @@ export class NavigationService {
       const isAlreadyDeclared = this.flight.legs.some(
         (declaredLeg) => declaredLeg.ident === leg.wptID.ident,
       );
+
+      if (!isAlreadyDeclared) {
+        this.flight.legs.push(
+          this.generateTerminalLeg(leg, EFlightPhases.TRS_PROC),
+        );
+      }
     }
   }
 
@@ -472,26 +482,66 @@ export class NavigationService {
     phase:
       | EFlightPhases.DEP_PROC
       | EFlightPhases.APP_PROC
+      | EFlightPhases.TRS_PROC
       | EFlightPhases.ARR_PROC,
   ): ILeg {
     const altitudeRestrictions = this.getAltitudeRestriction(terminalLeg.alt);
     const ident = altitudeRestrictions.minAlt
       ? `(CLB${altitudeRestrictions.minAlt})`
       : `(DES${altitudeRestrictions.maxAlt})`;
-
-    return {
-      phase: phase,
-      type: terminalLeg.trackCode as ELegTypes,
-      ident: ident,
-      procedure: {
-        course: terminalLeg.course,
-        clbAlt: altitudeRestrictions.minAlt,
-        desAlt: altitudeRestrictions.maxAlt,
-      },
-      restrictions: {
-        altitude: altitudeRestrictions,
-      },
-    };
+    switch (terminalLeg.trackCode) {
+      case ELegTypes.CF:
+        return {
+          phase: phase,
+          type: terminalLeg.trackCode as ELegTypes,
+          ident: ident,
+          position: {
+            latitude: terminalLeg.wptLat,
+            longitude: terminalLeg.wptLon,
+          },
+          procedure: {
+            course: terminalLeg.course,
+            clbAlt: altitudeRestrictions.minAlt,
+            desAlt: altitudeRestrictions.maxAlt,
+          },
+          restrictions: {
+            altitude: altitudeRestrictions,
+          },
+          lastIntBeforeRunway: true,
+        };
+      case ELegTypes.CA:
+        return {
+          phase: phase,
+          type: terminalLeg.trackCode as ELegTypes,
+          ident: ident,
+          procedure: {
+            course: terminalLeg.course,
+            clbAlt: altitudeRestrictions.minAlt,
+            desAlt: altitudeRestrictions.maxAlt,
+          },
+          restrictions: {
+            altitude: altitudeRestrictions,
+          },
+        };
+      case ELegTypes.FD:
+        return {
+          phase: phase,
+          type: terminalLeg.trackCode as ELegTypes,
+          ident: ident,
+          procedure: {
+            course: terminalLeg.course,
+            clbAlt: altitudeRestrictions.minAlt,
+            desAlt: altitudeRestrictions.maxAlt,
+            dmeDistance: terminalLeg.navDist,
+          },
+          restrictions: {
+            altitude: altitudeRestrictions,
+          },
+          dme: terminalLeg.navID,
+        };
+      default:
+        break;
+    }
   }
 
   generateTerminalLeg(
@@ -499,10 +549,11 @@ export class NavigationService {
     phase:
       | EFlightPhases.DEP_PROC
       | EFlightPhases.APP_PROC
+      | EFlightPhases.TRS_PROC
       | EFlightPhases.ARR_PROC,
   ): ILeg {
     if (
-      terminalLeg.trackCode === ELegTypes.CF ||
+      (terminalLeg.wptID && terminalLeg.trackCode === ELegTypes.CF) ||
       terminalLeg.trackCode === ELegTypes.IF ||
       terminalLeg.trackCode === ELegTypes.TF // TODO: CHECK TF MEANING IN PROCEDURES
     ) {
@@ -511,7 +562,11 @@ export class NavigationService {
         phase,
         terminalLeg.trackCode,
       );
-    } else if (terminalLeg.trackCode === ELegTypes.CA) {
+    } else if (
+      (!terminalLeg.wptID && terminalLeg.trackCode === ELegTypes.CF) ||
+      terminalLeg.trackCode === ELegTypes.CA ||
+      terminalLeg.trackCode === ELegTypes.FD
+    ) {
       return this.generateProcedureLeg(terminalLeg, phase);
     }
   }
