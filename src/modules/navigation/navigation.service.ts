@@ -250,7 +250,7 @@ export class NavigationService {
       return {
         error: true,
         code: 'NVM003',
-        message: 'Undefined landing type has been entered',
+        message: 'Unidentifined landing type has been entered',
       };
     }
 
