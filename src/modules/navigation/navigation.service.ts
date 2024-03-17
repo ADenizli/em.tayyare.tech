@@ -38,6 +38,7 @@ export class NavigationService {
     await this.generateEnroutePhase();
     await this.generateApproachPhase();
     await this.generateLandingPhase();
+    this.calculateAndSetDistanceAndCompassDirections();
     console.log(this.flight.legs);
     // await this.generateGoAroundLegs();
   }
@@ -389,7 +390,10 @@ export class NavigationService {
   // To calculate true and magnetic heading between two points.
   // Warning! coord1 has defined as location of aircraft compass
   calculateHeading(coord1: IPosition, coord2: IPosition): ICompassDirections {
-    let compassDirections: ICompassDirections;
+    const compassDirections: ICompassDirections = {
+      trueHeading: undefined,
+      magneticHeading: undefined,
+    };
 
     const startLat = this.toRadians(coord1.latitude);
     const startLng = this.toRadians(coord1.longitude);
@@ -593,11 +597,17 @@ export class NavigationService {
       const currentLeg = legs[index];
       const nextLeg = legs[index + 1];
 
-      if (currentLeg.position && nextLeg.position) {
-        this.flight.legs[index].togo = this.getDistance(
-          currentLeg.position,
-          nextLeg.position,
-        );
+      if (index !== legs.length - 1) {
+        if (currentLeg.position && nextLeg.position) {
+          this.flight.legs[index].togo = this.getDistance(
+            currentLeg.position,
+            nextLeg.position,
+          );
+          this.flight.legs[index].course = this.calculateHeading(
+            currentLeg.position,
+            nextLeg.position,
+          ).magneticHeading;
+        }
       }
     }
   }
